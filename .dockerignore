@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node_modules
 dist
 .git
@@ -8,3 +9,15 @@ dist
 *.log
 .DS_Store
 Thumbs.db
+=======
+node_modules
+dist
+.git
+.gitignore
+.env
+.env.local
+*.md
+*.log
+.DS_Store
+Thumbs.db
+>>>>>>> f9b25aa (fetch)

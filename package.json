@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {
   "name": "privacy-cash-telegram-bot",
   "version": "1.0.0",
@@ -40,3 +41,47 @@
     "node": ">=18.0.0"
   }
 }
+=======
+{
+  "name": "privacy-cash-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for Privacy Cash SDK - deposit, withdraw, swap tokens, and monitor balance changes",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "postinstall": "node -e \"const fs=require('fs');const src='node_modules/@lightprotocol/hasher.rs/dist/';const dst=src+'browser-fat/es/';fs.copyFileSync(src+'hasher_wasm_simd_bg.wasm',dst+'hasher_wasm_simd_bg.wasm');fs.copyFileSync(src+'light_wasm_hasher_bg.wasm',dst+'light_wasm_hasher_bg.wasm');\""
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "privacy-cash",
+    "solana",
+    "crypto",
+    "wallet"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "privacycash": "^1.1.10",
+    "telegraf": "^4.16.3",
+    "@solana/web3.js": "^1.98.4",
+    "@solana/spl-token": "^0.4.14",
+    "bs58": "^6.0.0",
+    "dotenv": "^17.2.2",
+    "node-localstorage": "^3.0.5",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.0",
+    "@types/node-cron": "^3.0.11",
+    "typescript": "^5.9.2",
+    "tsx": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
+>>>>>>> f9b25aa (fetch)
