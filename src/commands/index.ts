@@ -14,6 +14,13 @@ const __dirname = path.dirname(__filename);
 // Banner path - go up from dist/commands to project root, then to src/assets/images
 const BANNER_PATH = path.join(__dirname, '../../src/assets/images/banner.png');
 
+// Cache banner file_id to avoid re-uploading
+let cachedBannerFileId: string | null = null;
+
+// Rate limiting for /start command
+const startCommandCooldown: Map<number, number> = new Map();
+const START_COOLDOWN_MS = 3000; // 3 seconds cooldown
+
 // User state management for multi-step operations
 interface UserState {
     action?: 'deposit' | 'withdraw' | 'connect';
@@ -30,7 +37,7 @@ const userLanguages: Map<number, Language> = new Map();
  * Get user's language
  */
 function getLang(chatId: number): Language {
-    return userLanguages.get(chatId) || 'vi';
+    return userLanguages.get(chatId) || 'en';
 }
 
 /**
