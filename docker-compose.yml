@@ -1,0 +1,18 @@
+services:
+  privacy-bot:
+    build: .
+    container_name: privacy-cash-bot
+    restart: always
+    environment:
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - SOLANA_RPC_URL=${SOLANA_RPC_URL}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+    volumes:
+      - ./data:/app/data
+      - ./cache:/app/cache
+      - ./user_data:/app/user_data
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

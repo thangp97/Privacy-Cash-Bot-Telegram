@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files (SENSITIVE - contains bot token, encryption keys)
+.env
+.env.*
+.env.local
+.env.*.local
+.env.production
+.env.development
+
+# Cache (contains encrypted wallet data)
+cache/
+
+# User data (SENSITIVE - contains wallet private keys)
+user_data/
+sessions/
+data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker (optional - may contain sensitive data)
+docker-compose.override.yml
+
+# Backup files
+*.bak
+*.backup
+*.tmp
+
+# Private keys (NEVER commit these)
+*.pem
+*.key
+*_private_key*
+*privatekey*
+*.p12
+
+# Secrets
+secrets/
+.secrets
+*.secret
