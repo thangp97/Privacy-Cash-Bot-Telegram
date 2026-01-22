@@ -25,6 +25,12 @@ const START_COOLDOWN_MS = 3000; // 3 seconds cooldown
 // Store pending NLP commands for confirmation
 const pendingNLPCommands: Map<number, ParsedCommand> = new Map();
 
+// Helper function to convert Markdown formatting to HTML
+function markdownToHtml(text: string): string {
+    // Convert *bold* to <b>bold</b>
+    return text.replace(/\*([^*]+)\*/g, '<b>$1</b>');
+}
+
 // User state management for multi-step operations
 interface UserState {
     action?: 'deposit' | 'withdraw' | 'connect';
@@ -342,14 +348,18 @@ export function registerCommands(
         const result = await walletService.createNewWallet(chatId);
 
         if (result.success && result.publicKey && result.privateKey) {
-            const message = `${t(lang, 'wallet_created_title')}\n\n` +
-                `${t(lang, 'wallet_created_address')}\n<code>${result.publicKey}</code>\n\n` +
-                `${t(lang, 'wallet_created_private_key')}\n<tg-spoiler><code>${result.privateKey}</code></tg-spoiler>\n\n` +
-                `${t(lang, 'wallet_created_warning')}\n` +
-                `${t(lang, 'wallet_created_warning_1')}\n` +
-                `${t(lang, 'wallet_created_warning_2')}\n` +
-                `${t(lang, 'wallet_created_warning_3')}\n` +
-                `${t(lang, 'wallet_created_warning_4')}`;
+            const message = markdownToHtml(
+                `${t(lang, 'wallet_created_title')}\n\n` +
+                `${t(lang, 'wallet_created_address')}\n`) +
+                `<code>${result.publicKey}</code>\n\n` +
+                markdownToHtml(`${t(lang, 'wallet_created_private_key')}\n`) +
+                `<tg-spoiler><code>${result.privateKey}</code></tg-spoiler>\n\n` +
+                markdownToHtml(
+                    `${t(lang, 'wallet_created_warning')}\n` +
+                    `${t(lang, 'wallet_created_warning_1')}\n` +
+                    `${t(lang, 'wallet_created_warning_2')}\n` +
+                    `${t(lang, 'wallet_created_warning_3')}\n` +
+                    `${t(lang, 'wallet_created_warning_4')}`);
 
             const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'HTML', ...getMainMenuKeyboard(true, lang) });
 
@@ -479,10 +489,12 @@ export function registerCommands(
             return;
         }
 
-        const message = `${t(lang, 'export_key_title')}\n\n` +
-            `${t(lang, 'wallet_created_address')}\n<code>${wallet.publicKey}</code>\n\n` +
-            `${t(lang, 'wallet_created_private_key')}\n<tg-spoiler><code>${wallet.privateKey}</code></tg-spoiler>\n\n` +
-            `${t(lang, 'export_key_auto_delete')}`;
+        const message = markdownToHtml(`${t(lang, 'export_key_title')}\n\n` +
+            `${t(lang, 'wallet_created_address')}\n`) +
+            `<code>${wallet.publicKey}</code>\n\n` +
+            markdownToHtml(`${t(lang, 'wallet_created_private_key')}\n`) +
+            `<tg-spoiler><code>${wallet.privateKey}</code></tg-spoiler>\n\n` +
+            markdownToHtml(`${t(lang, 'export_key_auto_delete')}`);
 
         const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'HTML', ...getBackToMenuKeyboard(lang) });
 
@@ -1217,13 +1229,14 @@ export function registerCommands(
                             if (!walletService.hasWallet(chatId)) {
                                 const result = await walletService.createNewWallet(chatId);
                                 if (result.success && result.publicKey) {
-                                    await ctx.reply(
+                                    const message = markdownToHtml(
                                         `✅ ${t(lang, 'wallet_created_title')}\n\n` +
-                                        `${t(lang, 'wallet_created_address')}\n<code>${result.publicKey}</code>\n\n` +
-                                        `${t(lang, 'wallet_created_private_key')}\n<tg-spoiler><code>${result.privateKey}</code></tg-spoiler>\n\n` +
-                                        `${t(lang, 'wallet_created_warning')}`,
-                                        { parse_mode: 'HTML', ...getMainMenuKeyboard(true, lang) }
-                                    );
+                                        `${t(lang, 'wallet_created_address')}\n`) +
+                                        `<code>${result.publicKey}</code>\n\n` +
+                                        markdownToHtml(`${t(lang, 'wallet_created_private_key')}\n`) +
+                                        `<tg-spoiler><code>${result.privateKey}</code></tg-spoiler>\n\n` +
+                                        markdownToHtml(`${t(lang, 'wallet_created_warning')}`);
+                                    await ctx.reply(message, { parse_mode: 'HTML', ...getMainMenuKeyboard(true, lang) });
                                 }
                             } else {
                                 const msg = lang === 'vi' ? '⚠️ Bạn đã có ví rồi!' :
