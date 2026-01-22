@@ -343,15 +343,15 @@ export function registerCommands(
 
         if (result.success && result.publicKey && result.privateKey) {
             const message = `${t(lang, 'wallet_created_title')}\n\n` +
-                `${t(lang, 'wallet_created_address')}\n\`${result.publicKey}\`\n\n` +
-                `${t(lang, 'wallet_created_private_key')}\n\`${result.privateKey}\`\n\n` +
+                `${t(lang, 'wallet_created_address')}\n<code>${result.publicKey}</code>\n\n` +
+                `${t(lang, 'wallet_created_private_key')}\n<tg-spoiler><code>${result.privateKey}</code></tg-spoiler>\n\n` +
                 `${t(lang, 'wallet_created_warning')}\n` +
                 `${t(lang, 'wallet_created_warning_1')}\n` +
                 `${t(lang, 'wallet_created_warning_2')}\n` +
                 `${t(lang, 'wallet_created_warning_3')}\n` +
                 `${t(lang, 'wallet_created_warning_4')}`;
 
-            const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) });
+            const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'HTML', ...getMainMenuKeyboard(true, lang) });
 
             // Auto-delete the message with private key after 60 seconds for security
             setTimeout(async () => {
@@ -480,11 +480,11 @@ export function registerCommands(
         }
 
         const message = `${t(lang, 'export_key_title')}\n\n` +
-            `${t(lang, 'wallet_created_address')}\n\`${wallet.publicKey}\`\n\n` +
-            `${t(lang, 'wallet_created_private_key')}\n\`${wallet.privateKey}\`\n\n` +
+            `${t(lang, 'wallet_created_address')}\n<code>${wallet.publicKey}</code>\n\n` +
+            `${t(lang, 'wallet_created_private_key')}\n<tg-spoiler><code>${wallet.privateKey}</code></tg-spoiler>\n\n` +
             `${t(lang, 'export_key_auto_delete')}`;
 
-        const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
+        const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'HTML', ...getBackToMenuKeyboard(lang) });
 
         // Auto-delete after 60 seconds for security
         setTimeout(async () => {
@@ -1219,10 +1219,10 @@ export function registerCommands(
                                 if (result.success && result.publicKey) {
                                     await ctx.reply(
                                         `✅ ${t(lang, 'wallet_created_title')}\n\n` +
-                                        `${t(lang, 'wallet_created_address')}\n\`\`\`\n${result.publicKey}\n\`\`\`\n\n` +
-                                        `${t(lang, 'wallet_created_private_key')}\n\`\`\`\n${result.privateKey}\n\`\`\`\n\n` +
+                                        `${t(lang, 'wallet_created_address')}\n<code>${result.publicKey}</code>\n\n` +
+                                        `${t(lang, 'wallet_created_private_key')}\n<tg-spoiler><code>${result.privateKey}</code></tg-spoiler>\n\n` +
                                         `${t(lang, 'wallet_created_warning')}`,
-                                        { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                                        { parse_mode: 'HTML', ...getMainMenuKeyboard(true, lang) }
                                     );
                                 }
                             } else {
