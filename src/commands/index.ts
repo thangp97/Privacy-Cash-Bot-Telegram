@@ -1,6 +1,7 @@
 import { Context, Markup } from 'telegraf';
 import { WalletService } from '../services/walletService.js';
 import { BalanceMonitor } from '../services/balanceMonitor.js';
+import { parseNaturalLanguage, isNaturalLanguageCommand, generateConfirmationMessage, ParsedCommand } from '../services/nlpHandler.js';
 import { SUPPORTED_TOKENS, TokenSymbol } from '../config.js';
 import { formatSOL, formatToken, shortenAddress } from '../utils.js';
 import { Language, t, getLanguageKeyboard, locales } from '../locales/index.js';
@@ -20,6 +21,9 @@ let cachedBannerFileId: string | null = null;
 // Rate limiting for /start command
 const startCommandCooldown: Map<number, number> = new Map();
 const START_COOLDOWN_MS = 3000; // 3 seconds cooldown
+
+// Store pending NLP commands for confirmation
+const pendingNLPCommands: Map<number, ParsedCommand> = new Map();
 
 // User state management for multi-step operations
 interface UserState {
@@ -709,7 +713,106 @@ export function registerCommands(
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
         userStates.delete(chatId);
+        pendingNLPCommands.delete(chatId);
         const hasWallet = walletService.hasWallet(chatId);
+        await safeEditOrReply(ctx,
+            t(lang, 'cancelled'),
+            { parse_mode: 'Markdown', ...getMainMenuKeyboard(hasWallet, lang) }
+        );
+    });
+
+    // ==================== NLP CONFIRMATION HANDLERS ====================
+
+    bot.action('nlp_confirm', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        await ctx.answerCbQuery();
+        const lang = getLang(chatId);
+
+        const parsed = pendingNLPCommands.get(chatId);
+        if (!parsed) {
+            await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
+            return;
+        }
+
+        pendingNLPCommands.delete(chatId);
+
+        // Execute the command based on intent
+        if (parsed.intent === 'deposit' && parsed.amount && parsed.token) {
+            await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: parsed.amount, token: parsed.token }), { parse_mode: 'Markdown' });
+            
+            try {
+                let result;
+                if (parsed.token === 'SOL') {
+                    result = await walletService.depositSOL(chatId, parsed.amount);
+                } else {
+                    result = await walletService.depositSPL(chatId, parsed.token, parsed.amount);
+                }
+
+                if (result.success) {
+                    await ctx.reply(
+                        `${t(lang, 'deposit_success')}\n\n` +
+                        `${t(lang, 'deposit_success_amount', { amount: parsed.amount, token: parsed.token })}\n` +
+                        `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                        { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                    );
+                } else {
+                    await ctx.reply(
+                        `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                        { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                    );
+                }
+            } catch (error) {
+                await ctx.reply(
+                    `${t(lang, 'error')}\n\n${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+                    { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                );
+            }
+        } else if ((parsed.intent === 'withdraw' || parsed.intent === 'transfer') && parsed.amount && parsed.token) {
+            const recipientAddress = parsed.address; // undefined for withdraw to self
+            
+            await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: parsed.amount, token: parsed.token }), { parse_mode: 'Markdown' });
+            
+            try {
+                let result;
+                if (parsed.token === 'SOL') {
+                    result = await walletService.withdrawSOL(chatId, parsed.amount, recipientAddress);
+                } else {
+                    result = await walletService.withdrawSPL(chatId, parsed.token, parsed.amount, recipientAddress);
+                }
+
+                if (result.success) {
+                    const wallet = walletService.getWallet(chatId);
+                    const recipient = recipientAddress || wallet?.publicKey || '';
+                    let message = `${t(lang, 'withdraw_success')}\n\n`;
+                    message += `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n`;
+                    message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`;
+
+                    await ctx.reply(message, { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) });
+                } else {
+                    await ctx.reply(
+                        `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                        { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                    );
+                }
+            } catch (error) {
+                await ctx.reply(
+                    `${t(lang, 'error')}\n\n${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+                    { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                );
+            }
+        }
+    });
+
+    bot.action('nlp_cancel', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        await ctx.answerCbQuery();
+        const lang = getLang(chatId);
+        
+        pendingNLPCommands.delete(chatId);
+        const hasWallet = walletService.hasWallet(chatId);
+        
         await safeEditOrReply(ctx,
             t(lang, 'cancelled'),
             { parse_mode: 'Markdown', ...getMainMenuKeyboard(hasWallet, lang) }
@@ -971,7 +1074,91 @@ export function registerCommands(
         if (text.startsWith('/')) return;
 
         const state = userStates.get(chatId);
-        if (!state) return;
+        
+        // If no active state, try to parse as natural language command
+        if (!state) {
+            // Check if it looks like a natural language command
+            if (isNaturalLanguageCommand(text)) {
+                const parsed = parseNaturalLanguage(text);
+                
+                if (parsed && parsed.confidence >= 0.6) {
+                    // Handle different intents
+                    switch (parsed.intent) {
+                        case 'balance':
+                            await handleBalance(ctx, walletService);
+                            return;
+                        case 'private_balance':
+                            await handlePrivateBalance(ctx, walletService);
+                            return;
+                        case 'wallet_info':
+                            await handleWalletInfo(ctx, walletService);
+                            return;
+                        case 'help':
+                            await handleHelp(ctx);
+                            return;
+                        case 'create_wallet':
+                            if (!walletService.hasWallet(chatId)) {
+                                const result = await walletService.createNewWallet(chatId);
+                                if (result.success && result.publicKey) {
+                                    await ctx.reply(
+                                        `✅ ${t(lang, 'wallet_created_title')}\n\n` +
+                                        `${t(lang, 'wallet_created_address')}\n\`\`\`\n${result.publicKey}\n\`\`\`\n\n` +
+                                        `${t(lang, 'wallet_created_private_key')}\n\`\`\`\n${result.privateKey}\n\`\`\`\n\n` +
+                                        `${t(lang, 'wallet_created_warning')}`,
+                                        { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                                    );
+                                }
+                            } else {
+                                const msg = lang === 'vi' ? '⚠️ Bạn đã có ví rồi!' :
+                                           lang === 'zh' ? '⚠️ 您已经有钱包了！' :
+                                           '⚠️ You already have a wallet!';
+                                await ctx.reply(msg, getMainMenuKeyboard(true, lang));
+                            }
+                            return;
+                        case 'deposit':
+                        case 'withdraw':
+                        case 'transfer':
+                            // Need wallet for these operations
+                            if (!walletService.hasWallet(chatId)) {
+                                await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+                                return;
+                            }
+                            
+                            // Store parsed command and ask for confirmation
+                            pendingNLPCommands.set(chatId, parsed);
+                            const confirmMsg = generateConfirmationMessage(parsed, lang);
+                            
+                            await ctx.reply(
+                                confirmMsg,
+                                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                                    [Markup.button.callback('✅ ' + t(lang, 'confirm'), 'nlp_confirm')],
+                                    [Markup.button.callback('❌ ' + t(lang, 'cancel'), 'nlp_cancel')]
+                                ]) }
+                            );
+                            return;
+                        case 'export_key':
+                            if (!walletService.hasWallet(chatId)) {
+                                await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+                                return;
+                            }
+                            // Show warning first
+                            await ctx.reply(
+                                `${t(lang, 'export_key_warning_title')}\n\n` +
+                                `${t(lang, 'export_key_warning_1')}\n` +
+                                `${t(lang, 'export_key_warning_2')}\n` +
+                                `${t(lang, 'export_key_warning_3')}\n\n` +
+                                `${t(lang, 'export_key_confirm_question')}`,
+                                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                                    [Markup.button.callback(t(lang, 'export_key_confirm_yes'), 'confirm_export_key')],
+                                    [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
+                                ]) }
+                            );
+                            return;
+                    }
+                }
+            }
+            return;
+        }
 
         // Handle connect wallet flow
         if (state.action === 'connect' && state.step === 'enter_private_key') {
