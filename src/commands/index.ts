@@ -739,6 +739,34 @@ export function registerCommands(
 
         // Execute the command based on intent
         if (parsed.intent === 'deposit' && parsed.amount && parsed.token) {
+            // Check public balance before depositing
+            try {
+                const balances = await walletService.getBalances(chatId, true);
+                if (balances) {
+                    let publicBalance = 0;
+                    if (parsed.token === 'SOL') {
+                        publicBalance = balances.sol.public;
+                    } else {
+                        const tokenKey = parsed.token as TokenSymbol;
+                        publicBalance = balances.tokens[tokenKey]?.public || 0;
+                    }
+
+                    if (publicBalance < parsed.amount) {
+                        await safeEditOrReply(ctx,
+                            t(lang, 'error_insufficient_balance_deposit', {
+                                balance: publicBalance.toFixed(6),
+                                token: parsed.token,
+                                amount: parsed.amount.toString()
+                            }),
+                            { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                        );
+                        return;
+                    }
+                }
+            } catch (balanceError) {
+                console.error('Error checking balance:', balanceError);
+            }
+
             await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: parsed.amount, token: parsed.token }), { parse_mode: 'Markdown' });
             
             try {
@@ -771,6 +799,34 @@ export function registerCommands(
         } else if ((parsed.intent === 'withdraw' || parsed.intent === 'transfer') && parsed.amount && parsed.token) {
             const recipientAddress = parsed.address; // undefined for withdraw to self
             
+            // Check private balance before withdrawing
+            try {
+                const balances = await walletService.getBalances(chatId, true);
+                if (balances) {
+                    let privateBalance = 0;
+                    if (parsed.token === 'SOL') {
+                        privateBalance = balances.sol.private;
+                    } else {
+                        const tokenKey = parsed.token as TokenSymbol;
+                        privateBalance = balances.tokens[tokenKey]?.private || 0;
+                    }
+
+                    if (privateBalance < parsed.amount) {
+                        await safeEditOrReply(ctx,
+                            t(lang, 'error_insufficient_balance_withdraw', {
+                                balance: privateBalance.toFixed(6),
+                                token: parsed.token,
+                                amount: parsed.amount.toString()
+                            }),
+                            { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
+                        );
+                        return;
+                    }
+                }
+            } catch (balanceError) {
+                console.error('Error checking balance:', balanceError);
+            }
+
             await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: parsed.amount, token: parsed.token }), { parse_mode: 'Markdown' });
             
             try {
@@ -929,6 +985,7 @@ export function registerCommands(
             `${t(lang, 'withdraw_confirm_token', { token: state.token })}\n` +
             `${t(lang, 'withdraw_confirm_amount', { amount: state.amount })}\n` +
             `${t(lang, 'withdraw_confirm_to', { address: shortenAddress(wallet?.publicKey || '') })} ${t(lang, 'withdraw_confirm_to_self')}\n\n` +
+            `${t(lang, 'withdraw_confirm_estimated_fee')}\n` +
             `${t(lang, 'withdraw_confirm_fee_note')}`,
             { parse_mode: 'Markdown', ...getConfirmKeyboard('withdraw', lang) }
         );
@@ -966,6 +1023,36 @@ export function registerCommands(
         if (!state || state.action !== 'withdraw' || !state.token || !state.amount) {
             await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
             return;
+        }
+
+        // Check private balance before withdrawing
+        try {
+            const balances = await walletService.getBalances(chatId, true);
+            if (balances) {
+                let privateBalance = 0;
+                if (state.token === 'SOL') {
+                    privateBalance = balances.sol.private;
+                } else {
+                    const tokenKey = state.token as TokenSymbol;
+                    privateBalance = balances.tokens[tokenKey]?.private || 0;
+                }
+
+                if (privateBalance < state.amount) {
+                    await safeEditOrReply(ctx,
+                        t(lang, 'error_insufficient_balance_withdraw', {
+                            balance: privateBalance.toFixed(6),
+                            token: state.token,
+                            amount: state.amount.toString()
+                        }),
+                        { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                    );
+                    userStates.delete(chatId);
+                    return;
+                }
+            }
+        } catch (balanceError) {
+            console.error('Error checking balance:', balanceError);
+            // Continue with withdrawal even if balance check fails
         }
 
         await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
@@ -1024,6 +1111,36 @@ export function registerCommands(
         if (!state || state.action !== 'deposit' || !state.token || !state.amount) {
             await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
             return;
+        }
+
+        // Check public balance before depositing
+        try {
+            const balances = await walletService.getBalances(chatId, true);
+            if (balances) {
+                let publicBalance = 0;
+                if (state.token === 'SOL') {
+                    publicBalance = balances.sol.public;
+                } else {
+                    const tokenKey = state.token as TokenSymbol;
+                    publicBalance = balances.tokens[tokenKey]?.public || 0;
+                }
+
+                if (publicBalance < state.amount) {
+                    await safeEditOrReply(ctx,
+                        t(lang, 'error_insufficient_balance_deposit', {
+                            balance: publicBalance.toFixed(6),
+                            token: state.token,
+                            amount: state.amount.toString()
+                        }),
+                        { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                    );
+                    userStates.delete(chatId);
+                    return;
+                }
+            }
+        } catch (balanceError) {
+            console.error('Error checking balance:', balanceError);
+            // Continue with deposit even if balance check fails
         }
 
         await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
@@ -1272,6 +1389,7 @@ export function registerCommands(
                 `${t(lang, 'withdraw_confirm_token', { token: state.token })}\n` +
                 `${t(lang, 'withdraw_confirm_amount', { amount: state.amount })}\n` +
                 `${t(lang, 'withdraw_confirm_to', { address: shortenAddress(address) })}\n\n` +
+                `${t(lang, 'withdraw_confirm_estimated_fee')}\n` +
                 `${t(lang, 'withdraw_confirm_fee_note')}`,
                 { parse_mode: 'Markdown', ...getConfirmKeyboard('withdraw', lang) }
             );

@@ -21,6 +21,8 @@ export interface LocaleStrings {
     error_invalid_address: string;
     error_session_expired: string;
     error_unknown: string;
+    error_insufficient_balance_deposit: string;
+    error_insufficient_balance_withdraw: string;
 
     // Main menu
     menu_title: string;
@@ -120,6 +122,7 @@ export interface LocaleStrings {
     withdraw_confirm_to: string;
     withdraw_confirm_to_self: string;
     withdraw_confirm_fee_note: string;
+    withdraw_confirm_estimated_fee: string;
     withdraw_processing: string;
     withdraw_success: string;
     withdraw_success_token: string;
@@ -206,6 +209,8 @@ const vi: LocaleStrings = {
     error_invalid_address: '❌ Địa chỉ ví không hợp lệ. Vui lòng nhập địa chỉ Solana hợp lệ.',
     error_session_expired: '❌ Phiên đã hết hạn. Vui lòng thử lại.',
     error_unknown: 'Không xác định',
+    error_insufficient_balance_deposit: '❌ *Không đủ số dư để nạp!*\n\n💰 Số dư hiện tại: {balance} {token}\n📥 Số lượng cần nạp: {amount} {token}\n\nVui lòng nạp thêm {token} vào ví của bạn.',
+    error_insufficient_balance_withdraw: '❌ *Không đủ số dư riêng tư để rút!*\n\n🔒 Số dư riêng tư: {balance} {token}\n📤 Số lượng cần rút: {amount} {token}\n\nVui lòng nạp thêm vào Privacy Cash trước.',
 
     // Main menu
     menu_title: '🏠 *Menu chính*\n\nChọn một tùy chọn bên dưới:',
@@ -305,6 +310,7 @@ const vi: LocaleStrings = {
     withdraw_confirm_to: 'Đến: `{address}`',
     withdraw_confirm_to_self: '(ví của bạn)',
     withdraw_confirm_fee_note: '⚠️ Phí sẽ được trừ từ số tiền rút.',
+    withdraw_confirm_estimated_fee: '💸 Phí ước tính: *~0.1% - 0.5%* của số tiền rút',
     withdraw_processing: '🔄 Đang rút {amount} {token}...',
     withdraw_success: '✅ *Rút tiền thành công!*',
     withdraw_success_token: '💰 Token: {token}',
@@ -391,6 +397,8 @@ const en: LocaleStrings = {
     error_invalid_address: '❌ Invalid wallet address. Please enter a valid Solana address.',
     error_session_expired: '❌ Session expired. Please try again.',
     error_unknown: 'Unknown',
+    error_insufficient_balance_deposit: '❌ *Insufficient balance to deposit!*\n\n💰 Current balance: {balance} {token}\n📥 Amount to deposit: {amount} {token}\n\nPlease add more {token} to your wallet.',
+    error_insufficient_balance_withdraw: '❌ *Insufficient private balance to withdraw!*\n\n🔒 Private balance: {balance} {token}\n📤 Amount to withdraw: {amount} {token}\n\nPlease deposit more to Privacy Cash first.',
 
     // Main menu
     menu_title: '🏠 *Main Menu*\n\nSelect an option below:',
@@ -490,6 +498,7 @@ const en: LocaleStrings = {
     withdraw_confirm_to: 'To: `{address}`',
     withdraw_confirm_to_self: '(your wallet)',
     withdraw_confirm_fee_note: '⚠️ Fees will be deducted from the withdrawal amount.',
+    withdraw_confirm_estimated_fee: '💸 Estimated fee: *~0.1% - 0.5%* of withdrawal amount',
     withdraw_processing: '🔄 Withdrawing {amount} {token}...',
     withdraw_success: '✅ *Withdrawal Successful!*',
     withdraw_success_token: '💰 Token: {token}',
@@ -576,6 +585,8 @@ const zh: LocaleStrings = {
     error_invalid_address: '❌ 钱包地址无效。请输入有效的 Solana 地址。',
     error_session_expired: '❌ 会话已过期。请重试。',
     error_unknown: '未知',
+    error_insufficient_balance_deposit: '❌ *余额不足，无法存款！*\n\n💰 当前余额: {balance} {token}\n📥 存款金额: {amount} {token}\n\n请向您的钱包添加更多 {token}。',
+    error_insufficient_balance_withdraw: '❌ *私密余额不足，无法取款！*\n\n🔒 私密余额: {balance} {token}\n📤 取款金额: {amount} {token}\n\n请先向 Privacy Cash 存入更多。',
 
     // Main menu
     menu_title: '🏠 *主菜单*\n\n请选择以下选项:',
@@ -675,6 +686,7 @@ const zh: LocaleStrings = {
     withdraw_confirm_to: '发送至: `{address}`',
     withdraw_confirm_to_self: '(您的钱包)',
     withdraw_confirm_fee_note: '⚠️ 手续费将从提款金额中扣除。',
+    withdraw_confirm_estimated_fee: '💸 预估手续费: 提款金额的 *~0.1% - 0.5%*',
     withdraw_processing: '🔄 正在提取 {amount} {token}...',
     withdraw_success: '✅ *取款成功！*',
     withdraw_success_token: '💰 代币: {token}',
