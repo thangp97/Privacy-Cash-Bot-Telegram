@@ -2491,8 +2491,8 @@ export function registerCommands(
 
         if (result.success && result.publicKey && result.privateKey) {
             const message = `${t(lang, 'wallet_created_title')}\n\n` +
-                `${t(lang, 'wallet_created_address')}\n\`${result.publicKey}\`\n\n` +
-                `${t(lang, 'wallet_created_private_key')}\n\`${result.privateKey}\`\n\n` +
+                `${t(lang, 'wallet_created_address')}\n\`\`\`\n${result.publicKey}\n\`\`\`\n\n` +
+                `${t(lang, 'wallet_created_private_key')}\n\`\`\`\n${result.privateKey}\n\`\`\`\n\n` +
                 `${t(lang, 'wallet_created_warning')}\n` +
                 `${t(lang, 'wallet_created_warning_1')}\n` +
                 `${t(lang, 'wallet_created_warning_2')}\n` +
@@ -2628,8 +2628,8 @@ export function registerCommands(
         }
 
         const message = `${t(lang, 'export_key_title')}\n\n` +
-            `${t(lang, 'wallet_created_address')}\n\`${wallet.publicKey}\`\n\n` +
-            `${t(lang, 'wallet_created_private_key')}\n\`${wallet.privateKey}\`\n\n` +
+            `${t(lang, 'wallet_created_address')}\n\`\`\`\n${wallet.publicKey}\n\`\`\`\n\n` +
+            `${t(lang, 'wallet_created_private_key')}\n\`\`\`\n${wallet.privateKey}\n\`\`\`\n\n` +
             `${t(lang, 'export_key_auto_delete')}`;
 
         const sentMsg = await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
