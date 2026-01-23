@@ -231,19 +231,19 @@ function isValidSolanaAddress(address: string): boolean {
 export function generateConfirmationMessage(parsed: ParsedCommand, lang: 'vi' | 'en' | 'zh'): string {
     const messages: Record<string, Record<string, string>> = {
         deposit: {
-            vi: `🔍 Tôi hiểu bạn muốn *nạp ${parsed.amount} ${parsed.token || 'SOL'}* vào Privacy Cash.\n\nBấm xác nhận để tiếp tục:`,
-            en: `🔍 I understand you want to *deposit ${parsed.amount} ${parsed.token || 'SOL'}* to Privacy Cash.\n\nClick confirm to continue:`,
-            zh: `🔍 我理解您想要*存入 ${parsed.amount} ${parsed.token || 'SOL'}* 到 Privacy Cash。\n\n点击确认继续:`,
+            vi: `Tôi hiểu bạn muốn *nạp ${parsed.amount} ${parsed.token || 'SOL'}* vào Privacy Cash.\n\nBấm xác nhận để tiếp tục:`,
+            en: `I understand you want to *deposit ${parsed.amount} ${parsed.token || 'SOL'}* to Privacy Cash.\n\nClick confirm to continue:`,
+            zh: `我理解您想要*存入 ${parsed.amount} ${parsed.token || 'SOL'}* 到 Privacy Cash。\n\n点击确认继续:`,
         },
         withdraw: {
-            vi: `🔍 Tôi hiểu bạn muốn *rút ${parsed.amount} ${parsed.token || 'SOL'}* về ví của bạn.\n\nBấm xác nhận để tiếp tục:`,
-            en: `🔍 I understand you want to *withdraw ${parsed.amount} ${parsed.token || 'SOL'}* to your wallet.\n\nClick confirm to continue:`,
-            zh: `🔍 我理解您想要*提取 ${parsed.amount} ${parsed.token || 'SOL'}* 到您的钱包。\n\n点击确认继续:`,
+            vi: `Tôi hiểu bạn muốn *rút ${parsed.amount} ${parsed.token || 'SOL'}* về ví của bạn.\n\nBấm xác nhận để tiếp tục:`,
+            en: `I understand you want to *withdraw ${parsed.amount} ${parsed.token || 'SOL'}* to your wallet.\n\nClick confirm to continue:`,
+            zh: `我理解您想要*提取 ${parsed.amount} ${parsed.token || 'SOL'}* 到您的钱包。\n\n点击确认继续:`,
         },
         transfer: {
-            vi: `🔍 Tôi hiểu bạn muốn *chuyển ${parsed.amount} ${parsed.token || 'SOL'}* đến:\n\`${parsed.address}\`\n\nBấm xác nhận để tiếp tục:`,
-            en: `🔍 I understand you want to *transfer ${parsed.amount} ${parsed.token || 'SOL'}* to:\n\`${parsed.address}\`\n\nClick confirm to continue:`,
-            zh: `🔍 我理解您想要*转账 ${parsed.amount} ${parsed.token || 'SOL'}* 到:\n\`${parsed.address}\`\n\n点击确认继续:`,
+            vi: `Tôi hiểu bạn muốn *chuyển ${parsed.amount} ${parsed.token || 'SOL'}* đến:\n\`${parsed.address}\`\n\nBấm xác nhận để tiếp tục:`,
+            en: `I understand you want to *transfer ${parsed.amount} ${parsed.token || 'SOL'}* to:\n\`${parsed.address}\`\n\nClick confirm to continue:`,
+            zh: `我理解您想要*转账 ${parsed.amount} ${parsed.token || 'SOL'}* 到:\n\`${parsed.address}\`\n\n点击确认继续:`,
         },
     };
 
