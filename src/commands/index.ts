@@ -795,7 +795,8 @@ export function registerCommands(
                     await ctx.reply(
                         `${t(lang, 'deposit_success')}\n\n` +
                         `${t(lang, 'deposit_success_amount', { amount: parsed.amount, token: token })}\n` +
-                        `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                        `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                        `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
                         { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
                     );
                 } else {
@@ -881,7 +882,8 @@ export function registerCommands(
                     const recipient = recipientAddress || wallet?.publicKey || '';
                     let message = `${t(lang, 'withdraw_success')}\n\n`;
                     message += `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n`;
-                    message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`;
+                    message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
+                    message += `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`;
 
                     await ctx.reply(message, { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) });
                 } else {
@@ -1121,7 +1123,8 @@ export function registerCommands(
                 }
                 
                 message += `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n`;
-                message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`;
+                message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
+                message += `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`;
 
                 await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
             } else {
@@ -1197,7 +1200,8 @@ export function registerCommands(
                 await safeEditOrReply(ctx,
                     `${t(lang, 'deposit_success')}\n\n` +
                     `${t(lang, 'deposit_success_amount', { amount: state.amount, token: state.token })}\n` +
-                    `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                    `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                    `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
                     { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
                 );
             } else {
@@ -2056,7 +2060,8 @@ async function executeDepositSOL(
                 undefined,
                 `${t(lang, 'deposit_success')}\n\n` +
                 `${t(lang, 'deposit_success_amount', { amount, token: 'SOL' })}\n` +
-                `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2142,7 +2147,8 @@ async function executeDepositToken(
                 undefined,
                 `${t(lang, 'deposit_success')}\n\n` +
                 `${t(lang, 'deposit_success_amount', { amount, token })}\n` +
-                `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2425,7 +2431,8 @@ async function executeWithdrawSOL(
                 `${t(lang, 'withdraw_success_received', { amount: actualAmount.toFixed(6) })}\n` +
                 `${t(lang, 'withdraw_success_fee', { fee: fee.toFixed(6) })}\n` +
                 `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n` +
-                `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2510,7 +2517,8 @@ async function executeWithdrawToken(
                 `${t(lang, 'withdraw_success_token', { token })}\n` +
                 `${t(lang, 'withdraw_success_amount', { amount })}\n` +
                 `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n` +
-                `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
+                `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {

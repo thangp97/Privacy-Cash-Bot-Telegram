@@ -106,6 +106,7 @@ export interface LocaleStrings {
     deposit_success: string;
     deposit_success_amount: string;
     deposit_success_signature: string;
+    deposit_success_link: string;
     deposit_failed: string;
 
     // Withdraw
@@ -131,6 +132,7 @@ export interface LocaleStrings {
     withdraw_success_fee: string;
     withdraw_success_to: string;
     withdraw_success_signature: string;
+    withdraw_success_link: string;
     withdraw_failed: string;
 
     // Monitoring
@@ -294,6 +296,7 @@ const vi: LocaleStrings = {
     deposit_success: '✅ *Nạp tiền thành công!*',
     deposit_success_amount: '💰 Số lượng: `{amount}` {token}',
     deposit_success_signature: '🔗 Signature: `{signature}`',
+    deposit_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
     deposit_failed: '❌ *Nạp tiền thất bại*',
 
     // Withdraw
@@ -319,6 +322,7 @@ const vi: LocaleStrings = {
     withdraw_success_fee: '💸 Phí: {fee} SOL',
     withdraw_success_to: '📍 Đến: `{address}`',
     withdraw_success_signature: '🔗 Signature: `{signature}`',
+    withdraw_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
     withdraw_failed: '❌ *Rút tiền thất bại*',
 
     // Monitoring
@@ -482,6 +486,7 @@ const en: LocaleStrings = {
     deposit_success: '✅ *Deposit Successful!*',
     deposit_success_amount: '💰 Amount: `{amount}` {token}',
     deposit_success_signature: '🔗 Signature: `{signature}`',
+    deposit_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
     deposit_failed: '❌ *Deposit Failed*',
 
     // Withdraw
@@ -507,6 +512,7 @@ const en: LocaleStrings = {
     withdraw_success_fee: '💸 Fee: {fee} SOL',
     withdraw_success_to: '📍 To: `{address}`',
     withdraw_success_signature: '🔗 Signature: `{signature}`',
+    withdraw_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
     withdraw_failed: '❌ *Withdrawal Failed*',
 
     // Monitoring
@@ -670,6 +676,7 @@ const zh: LocaleStrings = {
     deposit_success: '✅ *存款成功！*',
     deposit_success_amount: '💰 数量: `{amount}` {token}',
     deposit_success_signature: '🔗 签名: `{signature}`',
+    deposit_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
     deposit_failed: '❌ *存款失败*',
 
     // Withdraw
@@ -695,6 +702,7 @@ const zh: LocaleStrings = {
     withdraw_success_fee: '💸 手续费: {fee} SOL',
     withdraw_success_to: '📍 发送至: `{address}`',
     withdraw_success_signature: '🔗 签名: `{signature}`',
+    withdraw_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
     withdraw_failed: '❌ *取款失败*',
 
     // Monitoring
