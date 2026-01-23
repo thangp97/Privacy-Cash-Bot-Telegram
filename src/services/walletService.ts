@@ -4,9 +4,23 @@ import { PrivacyCash } from 'privacycash';
 import { PublicKey, Connection, LAMPORTS_PER_SOL, Keypair } from '@solana/web3.js';
 import { getAssociatedTokenAddress, getAccount } from '@solana/spl-token';
 import bs58 from 'bs58';
-import { config, SUPPORTED_TOKENS, TokenSymbol } from '../config.js';
+import { config, SUPPORTED_TOKENS, TokenSymbol, PRIVACY_CASH_FEES
+ } from '../config.js';
 import { globalRequestQueue } from './requestQueue.js';
 import { balanceCache } from './balanceCache.js';
+
+export interface DepositResult {
+    success: boolean;
+    signature?: string;
+    error?: string;
+    errorCode?: 'INSUFFICIENT_BALANCE' | 'INSUFFICIENT_FEE' | 'WALLET_NOT_CONNECTED' | 'UNKNOWN';
+    details?: {
+        required: number;
+        available: number;
+        shortfall: number;
+        estimatedFee?: number;
+    };
+}
 
 export interface UserWallet {
     chatId: number;
@@ -347,22 +361,68 @@ export class WalletService {
     /**
      * Deposit SOL to Privacy Cash
      */
-    async depositSOL(chatId: number, amountSOL: number): Promise<{ success: boolean; signature?: string; error?: string }> {
+    async depositSOL(chatId: number, amountSOL: number): Promise<DepositResult> {
         const client = this.getClient(chatId);
-        if (!client) {
-            return { success: false, error: 'Wallet not connected' };
+        const wallet = this.getWallet(chatId);
+        if (!client || !wallet) {
+            return { success: false, error: 'Wallet not connected', errorCode: 'WALLET_NOT_CONNECTED' };
         }
 
         try {
+            // Check public balance before deposit
+            const publicKey = new PublicKey(wallet.publicKey);
+            const publicBalance = await this.connection.getBalance(publicKey);
+            const publicBalanceSOL = publicBalance / LAMPORTS_PER_SOL;
+            
             const lamports = Math.floor(amountSOL * LAMPORTS_PER_SOL);
+            const estimatedFee = PRIVACY_CASH_FEES.deposit.estimatedTxFeeSOL;
+            const requiredBalance = amountSOL + estimatedFee;
+
+            // Check if user has enough balance
+            if (publicBalanceSOL < requiredBalance) {
+                const shortfall = requiredBalance - publicBalanceSOL;
+                return {
+                    success: false,
+                    error: `Insufficient balance`,
+                    errorCode: 'INSUFFICIENT_BALANCE',
+                    details: {
+                        required: requiredBalance,
+                        available: publicBalanceSOL,
+                        shortfall: shortfall,
+                        estimatedFee: estimatedFee,
+                    },
+                };
+            }
+
             const result = await client.deposit({ lamports });
             // Invalidate cache after successful deposit
             this.invalidateBalanceCache(chatId);
             return { success: true, signature: result.tx };
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Deposit failed';
+            
+            // Parse insufficient lamports error from Privacy Cash
+            const insufficientMatch = errorMessage.match(/insufficient lamports (\d+), need (\d+)/i);
+            if (insufficientMatch) {
+                const available = parseInt(insufficientMatch[1]) / LAMPORTS_PER_SOL;
+                const required = parseInt(insufficientMatch[2]) / LAMPORTS_PER_SOL;
+                return {
+                    success: false,
+                    error: 'Insufficient balance',
+                    errorCode: 'INSUFFICIENT_BALANCE',
+                    details: {
+                        required: required,
+                        available: available,
+                        shortfall: required - available,
+                        estimatedFee: PRIVACY_CASH_FEES.deposit.estimatedTxFeeSOL,
+                    },
+                };
+            }
+
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Deposit failed',
+                error: errorMessage,
+                errorCode: 'UNKNOWN',
             };
         }
     }
@@ -409,29 +469,97 @@ export class WalletService {
         chatId: number,
         symbol: TokenSymbol,
         amount: number
-    ): Promise<{ success: boolean; signature?: string; error?: string }> {
+    ): Promise<DepositResult> {
         const client = this.getClient(chatId);
-        if (!client) {
-            return { success: false, error: 'Wallet not connected' };
+        const wallet = this.getWallet(chatId);
+        if (!client || !wallet) {
+            return { success: false, error: 'Wallet not connected', errorCode: 'WALLET_NOT_CONNECTED' };
         }
 
         const tokenInfo = SUPPORTED_TOKENS[symbol];
         if (!tokenInfo || symbol === 'SOL') {
-            return { success: false, error: 'Invalid token' };
+            return { success: false, error: 'Invalid token', errorCode: 'UNKNOWN' };
         }
 
         try {
+            // Check token balance before deposit
+            const publicKey = new PublicKey(wallet.publicKey);
+            const mintPubkey = new PublicKey(tokenInfo.mintAddress);
+            const ata = await getAssociatedTokenAddress(mintPubkey, publicKey);
+            
+            let tokenBalance = 0;
+            try {
+                const accountInfo = await getAccount(this.connection, ata);
+                tokenBalance = Number(accountInfo.amount) / tokenInfo.unitsPerToken;
+            } catch {
+                // ATA doesn't exist, balance is 0
+            }
+
+            // Check if user has enough token balance
+            if (tokenBalance < amount) {
+                return {
+                    success: false,
+                    error: 'Insufficient token balance',
+                    errorCode: 'INSUFFICIENT_BALANCE',
+                    details: {
+                        required: amount,
+                        available: tokenBalance,
+                        shortfall: amount - tokenBalance,
+                    },
+                };
+            }
+
+            // Also check SOL for transaction fees
+            const solBalance = await this.connection.getBalance(publicKey);
+            const solBalanceSOL = solBalance / LAMPORTS_PER_SOL;
+            const estimatedFee = PRIVACY_CASH_FEES.deposit.estimatedTxFeeSOL;
+
+            if (solBalanceSOL < estimatedFee) {
+                return {
+                    success: false,
+                    error: 'Insufficient SOL for transaction fee',
+                    errorCode: 'INSUFFICIENT_FEE',
+                    details: {
+                        required: estimatedFee,
+                        available: solBalanceSOL,
+                        shortfall: estimatedFee - solBalanceSOL,
+                        estimatedFee: estimatedFee,
+                    },
+                };
+            }
+
             const result = await client.depositSPL({
                 amount,
-                mintAddress: new PublicKey(tokenInfo.mintAddress),
+                mintAddress: mintPubkey,
             });
             // Invalidate cache after successful deposit
             this.invalidateBalanceCache(chatId);
             return { success: true, signature: result.tx };
         } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Deposit failed';
+            
+            // Parse insufficient lamports error
+            const insufficientMatch = errorMessage.match(/insufficient lamports (\d+), need (\d+)/i);
+            if (insufficientMatch) {
+                const available = parseInt(insufficientMatch[1]) / LAMPORTS_PER_SOL;
+                const required = parseInt(insufficientMatch[2]) / LAMPORTS_PER_SOL;
+                return {
+                    success: false,
+                    error: 'Insufficient SOL for transaction fee',
+                    errorCode: 'INSUFFICIENT_FEE',
+                    details: {
+                        required: required,
+                        available: available,
+                        shortfall: required - available,
+                        estimatedFee: PRIVACY_CASH_FEES.deposit.estimatedTxFeeSOL,
+                    },
+                };
+            }
+
             return {
                 success: false,
-                error: error instanceof Error ? error.message : 'Deposit failed',
+                error: errorMessage,
+                errorCode: 'UNKNOWN',
             };
         }
     }

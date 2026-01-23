@@ -95,3 +95,40 @@ export const SUPPORTED_TOKENS = {
 } as const;
 
 export type TokenSymbol = keyof typeof SUPPORTED_TOKENS;
+
+// Privacy Cash Fee Configuration
+export const PRIVACY_CASH_FEES = {
+    // Withdrawal fees
+    withdraw: {
+        baseFeeSOL: 0.006,          // 0.006 SOL base fee
+        percentageFee: 0.0035,      // 0.35% percentage fee
+    },
+    // Estimated transaction fee for deposits (rent + tx fee)
+    deposit: {
+        estimatedTxFeeSOL: 0.003,   // Estimated transaction fee for deposit
+    },
+} as const;
+
+/**
+ * Calculate withdrawal fee for SOL
+ * @param amountSOL Amount in SOL to withdraw
+ * @returns Object containing base fee, percentage fee, and total fee
+ */
+export function calculateWithdrawFee(amountSOL: number): {
+    baseFee: number;
+    percentageFee: number;
+    totalFee: number;
+    amountAfterFee: number;
+} {
+    const baseFee = PRIVACY_CASH_FEES.withdraw.baseFeeSOL;
+    const percentageFee = amountSOL * PRIVACY_CASH_FEES.withdraw.percentageFee;
+    const totalFee = baseFee + percentageFee;
+    const amountAfterFee = Math.max(0, amountSOL - totalFee);
+    
+    return {
+        baseFee,
+        percentageFee,
+        totalFee,
+        amountAfterFee,
+    };
+}

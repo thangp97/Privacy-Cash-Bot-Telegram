@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts",
-    "postinstall": "node -e \"const fs=require('fs');const src='node_modules/@lightprotocol/hasher.rs/dist/';const dst=src+'browser-fat/es/';fs.copyFileSync(src+'hasher_wasm_simd_bg.wasm',dst+'hasher_wasm_simd_bg.wasm');fs.copyFileSync(src+'light_wasm_hasher_bg.wasm',dst+'light_wasm_hasher_bg.wasm');\""
+    "postinstall": "node scripts/patch-privacycash.cjs && node -e \"const fs=require('fs');const src='node_modules/@lightprotocol/hasher.rs/dist/';const dst=src+'browser-fat/es/';fs.copyFileSync(src+'hasher_wasm_simd_bg.wasm',dst+'hasher_wasm_simd_bg.wasm');fs.copyFileSync(src+'light_wasm_hasher_bg.wasm',dst+'light_wasm_hasher_bg.wasm');\""
   },
   "keywords": [
     "telegram",

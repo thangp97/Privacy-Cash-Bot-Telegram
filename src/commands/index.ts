@@ -1,8 +1,8 @@
 import { Context, Markup } from 'telegraf';
-import { WalletService } from '../services/walletService.js';
+import { WalletService, DepositResult } from '../services/walletService.js';
 import { BalanceMonitor } from '../services/balanceMonitor.js';
 import { parseNaturalLanguage, isNaturalLanguageCommand, generateConfirmationMessage, ParsedCommand } from '../services/nlpHandler.js';
-import { SUPPORTED_TOKENS, TokenSymbol } from '../config.js';
+import { SUPPORTED_TOKENS, TokenSymbol, PRIVACY_CASH_FEES, calculateWithdrawFee } from '../config.js';
 import { formatSOL, formatToken, shortenAddress } from '../utils.js';
 import { Language, t, getLanguageKeyboard, locales } from '../locales/index.js';
 import path from 'path';
@@ -748,26 +748,28 @@ export function registerCommands(
         }
 
         pendingNLPCommands.delete(chatId);
+        
+        // Default token to SOL if not specified
+        const token = parsed.token || 'SOL';
 
         // Execute the command based on intent
-        if (parsed.intent === 'deposit' && parsed.amount && parsed.token) {
+        if (parsed.intent === 'deposit' && parsed.amount) {
             // Check public balance before depositing
             try {
                 const balances = await walletService.getBalances(chatId, true);
                 if (balances) {
                     let publicBalance = 0;
-                    if (parsed.token === 'SOL') {
+                    if (token === 'SOL') {
                         publicBalance = balances.sol.public;
                     } else {
-                        const tokenKey = parsed.token as TokenSymbol;
-                        publicBalance = balances.tokens[tokenKey]?.public || 0;
+                        publicBalance = balances.tokens[token]?.public || 0;
                     }
 
                     if (publicBalance < parsed.amount) {
                         await safeEditOrReply(ctx,
                             t(lang, 'error_insufficient_balance_deposit', {
                                 balance: publicBalance.toFixed(6),
-                                token: parsed.token,
+                                token: token,
                                 amount: parsed.amount.toString()
                             }),
                             { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
@@ -779,28 +781,54 @@ export function registerCommands(
                 console.error('Error checking balance:', balanceError);
             }
 
-            await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: parsed.amount, token: parsed.token }), { parse_mode: 'Markdown' });
+            await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
             
             try {
                 let result;
-                if (parsed.token === 'SOL') {
+                if (token === 'SOL') {
                     result = await walletService.depositSOL(chatId, parsed.amount);
                 } else {
-                    result = await walletService.depositSPL(chatId, parsed.token, parsed.amount);
+                    result = await walletService.depositSPL(chatId, token, parsed.amount);
                 }
 
                 if (result.success) {
                     await ctx.reply(
                         `${t(lang, 'deposit_success')}\n\n` +
-                        `${t(lang, 'deposit_success_amount', { amount: parsed.amount, token: parsed.token })}\n` +
+                        `${t(lang, 'deposit_success_amount', { amount: parsed.amount, token: token })}\n` +
                         `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}`,
                         { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
                     );
                 } else {
-                    await ctx.reply(
-                        `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`,
-                        { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
-                    );
+                    // Handle detailed error for deposit
+                    let errorMsg = `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`;
+                    if (result.errorCode === 'INSUFFICIENT_BALANCE' && result.details) {
+                        const { required, available, shortfall, estimatedFee } = result.details;
+                        const messages: Record<Language, string> = {
+                            vi: `❌ *Không đủ số dư!*\n\n` +
+                                `📊 *Chi tiết:*\n` +
+                                `• Số dư hiện tại: \`${available.toFixed(6)} ${token}\`\n` +
+                                `• Số lượng deposit: \`${parsed.amount} ${token}\`\n` +
+                                `• Phí giao dịch (ước tính): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
+                                `• Tổng cần: \`${required.toFixed(6)} ${token}\`\n\n` +
+                                `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} ${token}\``,
+                            en: `❌ *Insufficient balance!*\n\n` +
+                                `📊 *Details:*\n` +
+                                `• Current balance: \`${available.toFixed(6)} ${token}\`\n` +
+                                `• Deposit amount: \`${parsed.amount} ${token}\`\n` +
+                                `• Transaction fee (estimated): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
+                                `• Total required: \`${required.toFixed(6)} ${token}\`\n\n` +
+                                `💰 *Need to add:* \`${shortfall.toFixed(6)} ${token}\``,
+                            zh: `❌ *余额不足！*\n\n` +
+                                `📊 *详情:*\n` +
+                                `• 当前余额: \`${available.toFixed(6)} ${token}\`\n` +
+                                `• 存入金额: \`${parsed.amount} ${token}\`\n` +
+                                `• 交易费用（估计）: \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
+                                `• 需要总额: \`${required.toFixed(6)} ${token}\`\n\n` +
+                                `💰 *需要充值:* \`${shortfall.toFixed(6)} ${token}\``,
+                        };
+                        errorMsg = messages[lang];
+                    }
+                    await ctx.reply(errorMsg, { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) });
                 }
             } catch (error) {
                 await ctx.reply(
@@ -808,7 +836,7 @@ export function registerCommands(
                     { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
                 );
             }
-        } else if ((parsed.intent === 'withdraw' || parsed.intent === 'transfer') && parsed.amount && parsed.token) {
+        } else if ((parsed.intent === 'withdraw' || parsed.intent === 'transfer') && parsed.amount) {
             const recipientAddress = parsed.address; // undefined for withdraw to self
             
             // Check private balance before withdrawing
@@ -816,18 +844,17 @@ export function registerCommands(
                 const balances = await walletService.getBalances(chatId, true);
                 if (balances) {
                     let privateBalance = 0;
-                    if (parsed.token === 'SOL') {
+                    if (token === 'SOL') {
                         privateBalance = balances.sol.private;
                     } else {
-                        const tokenKey = parsed.token as TokenSymbol;
-                        privateBalance = balances.tokens[tokenKey]?.private || 0;
+                        privateBalance = balances.tokens[token]?.private || 0;
                     }
 
                     if (privateBalance < parsed.amount) {
                         await safeEditOrReply(ctx,
                             t(lang, 'error_insufficient_balance_withdraw', {
                                 balance: privateBalance.toFixed(6),
-                                token: parsed.token,
+                                token: token,
                                 amount: parsed.amount.toString()
                             }),
                             { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
@@ -839,14 +866,14 @@ export function registerCommands(
                 console.error('Error checking balance:', balanceError);
             }
 
-            await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: parsed.amount, token: parsed.token }), { parse_mode: 'Markdown' });
+            await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
             
             try {
                 let result;
-                if (parsed.token === 'SOL') {
+                if (token === 'SOL') {
                     result = await walletService.withdrawSOL(chatId, parsed.amount, recipientAddress);
                 } else {
-                    result = await walletService.withdrawSPL(chatId, parsed.token, parsed.amount, recipientAddress);
+                    result = await walletService.withdrawSPL(chatId, token, parsed.amount, recipientAddress);
                 }
 
                 if (result.success) {
@@ -1204,11 +1231,18 @@ export function registerCommands(
 
         const state = userStates.get(chatId);
         
+        // Debug logging
+        console.log(`[NLP Debug] chatId: ${chatId}, text: "${text}", hasState: ${!!state}`);
+        
         // If no active state, try to parse as natural language command
         if (!state) {
             // Check if it looks like a natural language command
-            if (isNaturalLanguageCommand(text)) {
+            const isNLP = isNaturalLanguageCommand(text);
+            console.log(`[NLP Debug] isNaturalLanguageCommand: ${isNLP}`);
+            
+            if (isNLP) {
                 const parsed = parseNaturalLanguage(text);
+                console.log(`[NLP Debug] parsed:`, parsed);
                 
                 if (parsed && parsed.confidence >= 0.6) {
                     // Handle different intents
@@ -2026,11 +2060,47 @@ async function executeDepositSOL(
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
+            // Handle specific error cases
+            let errorMessage = '';
+            
+            if (result.errorCode === 'INSUFFICIENT_BALANCE' && result.details) {
+                const { required, available, shortfall, estimatedFee } = result.details;
+                const messages: Record<Language, string> = {
+                    vi: `❌ *Không đủ số dư!*\n\n` +
+                        `📊 *Chi tiết:*\n` +
+                        `• Số dư hiện tại: \`${available.toFixed(6)} SOL\`\n` +
+                        `• Số lượng deposit: \`${amount} SOL\`\n` +
+                        `• Phí giao dịch (ước tính): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
+                        `• Tổng cần: \`${required.toFixed(6)} SOL\`\n\n` +
+                        `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
+                        `_Vui lòng nạp thêm SOL vào ví public của bạn._`,
+                    en: `❌ *Insufficient balance!*\n\n` +
+                        `📊 *Details:*\n` +
+                        `• Current balance: \`${available.toFixed(6)} SOL\`\n` +
+                        `• Deposit amount: \`${amount} SOL\`\n` +
+                        `• Transaction fee (estimated): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
+                        `• Total required: \`${required.toFixed(6)} SOL\`\n\n` +
+                        `💰 *Need to add:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
+                        `_Please add more SOL to your public wallet._`,
+                    zh: `❌ *余额不足！*\n\n` +
+                        `📊 *详情:*\n` +
+                        `• 当前余额: \`${available.toFixed(6)} SOL\`\n` +
+                        `• 存入金额: \`${amount} SOL\`\n` +
+                        `• 交易费用（估计）: \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
+                        `• 需要总额: \`${required.toFixed(6)} SOL\`\n\n` +
+                        `💰 *需要充值:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
+                        `_请向您的公共钱包添加更多 SOL。_`,
+                };
+                errorMessage = messages[lang];
+            } else {
+                errorMessage = `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`;
+            }
+
             await ctx.telegram.editMessageText(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                errorMessage,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         }
@@ -2076,11 +2146,64 @@ async function executeDepositToken(
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
+            // Handle specific error cases
+            let errorMessage = '';
+            
+            if (result.errorCode === 'INSUFFICIENT_BALANCE' && result.details) {
+                const { required, available, shortfall } = result.details;
+                const messages: Record<Language, string> = {
+                    vi: `❌ *Không đủ số dư ${token}!*\n\n` +
+                        `📊 *Chi tiết:*\n` +
+                        `• Số dư hiện tại: \`${available.toFixed(6)} ${token}\`\n` +
+                        `• Số lượng deposit: \`${amount} ${token}\`\n\n` +
+                        `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} ${token}\`\n\n` +
+                        `_Vui lòng nạp thêm ${token} vào ví public của bạn._`,
+                    en: `❌ *Insufficient ${token} balance!*\n\n` +
+                        `📊 *Details:*\n` +
+                        `• Current balance: \`${available.toFixed(6)} ${token}\`\n` +
+                        `• Deposit amount: \`${amount} ${token}\`\n\n` +
+                        `💰 *Need to add:* \`${shortfall.toFixed(6)} ${token}\`\n\n` +
+                        `_Please add more ${token} to your public wallet._`,
+                    zh: `❌ *${token} 余额不足！*\n\n` +
+                        `📊 *详情:*\n` +
+                        `• 当前余额: \`${available.toFixed(6)} ${token}\`\n` +
+                        `• 存入金额: \`${amount} ${token}\`\n\n` +
+                        `💰 *需要充值:* \`${shortfall.toFixed(6)} ${token}\`\n\n` +
+                        `_请向您的公共钱包添加更多 ${token}。_`,
+                };
+                errorMessage = messages[lang];
+            } else if (result.errorCode === 'INSUFFICIENT_FEE' && result.details) {
+                const { required, available, shortfall } = result.details;
+                const messages: Record<Language, string> = {
+                    vi: `❌ *Không đủ SOL để trả phí giao dịch!*\n\n` +
+                        `📊 *Chi tiết:*\n` +
+                        `• Số dư SOL hiện tại: \`${available.toFixed(6)} SOL\`\n` +
+                        `• Phí giao dịch cần: \`~${required.toFixed(4)} SOL\`\n\n` +
+                        `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
+                        `_Vui lòng nạp thêm SOL vào ví để trả phí giao dịch._`,
+                    en: `❌ *Insufficient SOL for transaction fee!*\n\n` +
+                        `📊 *Details:*\n` +
+                        `• Current SOL balance: \`${available.toFixed(6)} SOL\`\n` +
+                        `• Transaction fee required: \`~${required.toFixed(4)} SOL\`\n\n` +
+                        `💰 *Need to add:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
+                        `_Please add more SOL to your wallet to pay for transaction fees._`,
+                    zh: `❌ *SOL 不足以支付交易费用！*\n\n` +
+                        `📊 *详情:*\n` +
+                        `• 当前 SOL 余额: \`${available.toFixed(6)} SOL\`\n` +
+                        `• 所需交易费用: \`~${required.toFixed(4)} SOL\`\n\n` +
+                        `💰 *需要充值:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
+                        `_请向您的钱包添加更多 SOL 以支付交易费用。_`,
+                };
+                errorMessage = messages[lang];
+            } else {
+                errorMessage = `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`;
+            }
+
             await ctx.telegram.editMessageText(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                errorMessage,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         }
@@ -2270,10 +2393,18 @@ async function executeWithdrawSOL(
 
     const wallet = walletService.getWallet(chatId);
     const recipient = recipientAddress || wallet?.publicKey || '';
+    
+    // Calculate estimated fees
+    const feeInfo = calculateWithdrawFee(amount);
 
     const statusMsg = await ctx.reply(
         `${t(lang, 'withdraw_processing', { amount, token: 'SOL' })}\n` +
-        `📍 ${lang === 'vi' ? 'Đến' : lang === 'en' ? 'To' : '发送至'}: \`${shortenAddress(recipient)}\``,
+        `📍 ${lang === 'vi' ? 'Đến' : lang === 'en' ? 'To' : '发送至'}: \`${shortenAddress(recipient)}\`\n\n` +
+        `💰 *${lang === 'vi' ? 'Phí Privacy Cash' : lang === 'en' ? 'Privacy Cash Fee' : '隐私现金费用'}:*\n` +
+        `• ${lang === 'vi' ? 'Phí cơ bản' : lang === 'en' ? 'Base fee' : '基础费用'}: \`${PRIVACY_CASH_FEES.withdraw.baseFeeSOL} SOL\`\n` +
+        `• ${lang === 'vi' ? 'Phí 0.35%' : lang === 'en' ? '0.35% fee' : '0.35% 费用'}: \`~${feeInfo.percentageFee.toFixed(6)} SOL\`\n` +
+        `• ${lang === 'vi' ? 'Tổng phí ước tính' : lang === 'en' ? 'Estimated total fee' : '估计总费用'}: \`~${feeInfo.totalFee.toFixed(6)} SOL\`\n` +
+        `• ${lang === 'vi' ? 'Nhận được ước tính' : lang === 'en' ? 'Estimated received' : '预计收到'}: \`~${feeInfo.amountAfterFee.toFixed(6)} SOL\``,
         { parse_mode: 'Markdown' }
     );
 
@@ -2298,13 +2429,38 @@ async function executeWithdrawSOL(
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
-            await ctx.telegram.editMessageText(
-                chatId,
-                statusMsg.message_id,
-                undefined,
-                `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
-                { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
-            );
+            // Check for insufficient private balance
+            const errorMessage = result.error || '';
+            const insufficientMatch = errorMessage.match(/insufficient|not enough/i);
+            
+            if (insufficientMatch) {
+                const messages: Record<Language, string> = {
+                    vi: `❌ *Không đủ số dư riêng tư!*\n\n` +
+                        `Số dư private không đủ để rút ${amount} SOL.\n\n` +
+                        `💡 _Hãy kiểm tra số dư private của bạn bằng lệnh /balance_`,
+                    en: `❌ *Insufficient private balance!*\n\n` +
+                        `Private balance is not enough to withdraw ${amount} SOL.\n\n` +
+                        `💡 _Check your private balance with /balance command_`,
+                    zh: `❌ *私人余额不足！*\n\n` +
+                        `私人余额不足以提取 ${amount} SOL。\n\n` +
+                        `💡 _使用 /balance 命令检查您的私人余额_`,
+                };
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    statusMsg.message_id,
+                    undefined,
+                    messages[lang],
+                    { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                );
+            } else {
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    statusMsg.message_id,
+                    undefined,
+                    `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                    { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                );
+            }
         }
     } catch (error) {
         await ctx.telegram.editMessageText(
