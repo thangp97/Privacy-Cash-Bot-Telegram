@@ -1,11 +1,16 @@
-FROM node:18-alpine
+FROM node:20-alpine
 
 # Create app directory
 WORKDIR /app
 
 # Install dependencies first (for better caching)
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Copy scripts and patches needed for postinstall
+COPY scripts ./scripts
+COPY patches ./patches
+
+RUN npm ci --omit=dev
 
 # Copy source code
 COPY tsconfig.json ./
