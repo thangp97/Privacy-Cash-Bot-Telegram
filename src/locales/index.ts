@@ -9,6 +9,7 @@ export interface LocaleStrings {
     cancel: string;
     confirm: string;
     back_to_menu: string;
+    refresh_balance: string;
     loading: string;
     error: string;
     success: string;
@@ -266,6 +267,7 @@ const vi: LocaleStrings = {
     cancel: '❌ Hủy',
     confirm: '✅ Xác nhận',
     back_to_menu: '🏠 Quay lại menu',
+    refresh_balance: '🔄 Làm mới',
     loading: '🔄 Đang tải...',
     error: '❌ Lỗi',
     success: '✅ Thành công',
@@ -523,6 +525,7 @@ const en: LocaleStrings = {
     cancel: '❌ Cancel',
     confirm: '✅ Confirm',
     back_to_menu: '🏠 Back to menu',
+    refresh_balance: '🔄 Refresh',
     loading: '🔄 Loading...',
     error: '❌ Error',
     success: '✅ Success',
@@ -780,6 +783,7 @@ const zh: LocaleStrings = {
     cancel: '❌ 取消',
     confirm: '✅ 确认',
     back_to_menu: '🏠 返回菜单',
+    refresh_balance: '🔄 刷新',
     loading: '🔄 加载中...',
     error: '❌ 错误',
     success: '✅ 成功',

@@ -210,6 +210,17 @@ function getBackToMenuKeyboard(lang: Language) {
 }
 
 /**
+ * Get balance keyboard with refresh and back buttons
+ */
+function getBalanceKeyboard(lang: Language, isPrivate: boolean = false) {
+    const refreshAction = isPrivate ? 'action_private_balance' : 'action_balance';
+    return Markup.inlineKeyboard([
+        [Markup.button.callback(t(lang, 'refresh_balance'), refreshAction)],
+        [Markup.button.callback(t(lang, 'back_to_menu'), 'action_menu')]
+    ]);
+}
+
+/**
  * Safe edit or reply - handles both text messages and photo messages
  * When the original message is a photo (has caption), we delete it and send a new text message
  * When the original message is text, we edit it
@@ -606,11 +617,11 @@ export function registerCommands(
                 }
             }
 
-            await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
+            await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBalanceKeyboard(lang, false) });
         } catch (error) {
             await safeEditOrReply(ctx,
                 `${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
-                getBackToMenuKeyboard(lang)
+                getBalanceKeyboard(lang, false)
             );
         }
     });
@@ -646,11 +657,11 @@ export function registerCommands(
                 }
             }
 
-            await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
+            await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBalanceKeyboard(lang, true) });
         } catch (error) {
             await safeEditOrReply(ctx,
                 `${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
-                getBackToMenuKeyboard(lang)
+                getBalanceKeyboard(lang, true)
             );
         }
     });

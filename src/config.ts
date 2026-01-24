@@ -39,7 +39,7 @@ export const config: Config = {
         rpcUrl: getEnvVar('SOLANA_RPC_URL', 'https://api.mainnet-beta.solana.com'),
     },
     balanceMonitor: {
-        checkIntervalMinutes: parseInt(getEnvVar('BALANCE_CHECK_INTERVAL', '5'), 10),
+        checkIntervalMinutes: parseInt(getEnvVar('BALANCE_CHECK_INTERVAL', '1'), 10),
     },
     paths: {
         userData: path.join(__dirname, '..', 'user_data'),
