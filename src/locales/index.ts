@@ -242,6 +242,19 @@ export interface LocaleStrings {
     wallet_created_warning_4: string;
     wallet_import_title: string;
     wallet_import_instruction: string;
+
+    // QR Code scanning
+    qr_scanning: string;
+    qr_no_code_found: string;
+    qr_scan_error: string;
+    qr_address_detected: string;
+    qr_address_label: string;
+    qr_what_to_do: string;
+    qr_private_transfer: string;
+    qr_multi_send: string;
+    qr_copy_address: string;
+    qr_not_solana_address: string;
+    qr_content_label: string;
 }
 
 const vi: LocaleStrings = {
@@ -486,6 +499,19 @@ const vi: LocaleStrings = {
     wallet_created_warning_4: '• Tin nhắn này sẽ tự động xóa sau 60 giây',
     wallet_import_title: '📥 *Nhập ví có sẵn*',
     wallet_import_instruction: 'Gửi private key của ví bạn muốn nhập.',
+
+    // QR Code scanning
+    qr_scanning: '🔍 Đang quét mã QR...',
+    qr_no_code_found: '❌ Không tìm thấy mã QR trong ảnh. Vui lòng gửi ảnh rõ hơn.',
+    qr_scan_error: '❌ Lỗi quét mã QR: {error}',
+    qr_address_detected: '✅ *Phát hiện địa chỉ ví Solana!*',
+    qr_address_label: '📍 *Địa chỉ:*',
+    qr_what_to_do: 'Bạn muốn làm gì với địa chỉ này?',
+    qr_private_transfer: '🔐 Chuyển tiền riêng tư',
+    qr_multi_send: '📤 Thêm vào Multi Send',
+    qr_copy_address: '📋 Sao chép địa chỉ',
+    qr_not_solana_address: '⚠️ *Mã QR không chứa địa chỉ Solana*',
+    qr_content_label: '📄 *Nội dung:*',
 };
 
 const en: LocaleStrings = {
@@ -730,6 +756,19 @@ const en: LocaleStrings = {
     wallet_created_warning_4: '• This message will be automatically deleted after 60 seconds',
     wallet_import_title: '📥 *Import Existing Wallet*',
     wallet_import_instruction: 'Send the private key of the wallet you want to import.',
+
+    // QR Code scanning
+    qr_scanning: '🔍 Scanning QR code...',
+    qr_no_code_found: '❌ No QR code found in the image. Please send a clearer image.',
+    qr_scan_error: '❌ QR scan error: {error}',
+    qr_address_detected: '✅ *Solana Wallet Address Detected!*',
+    qr_address_label: '📍 *Address:*',
+    qr_what_to_do: 'What would you like to do with this address?',
+    qr_private_transfer: '🔐 Private Transfer',
+    qr_multi_send: '📤 Add to Multi Send',
+    qr_copy_address: '📋 Copy Address',
+    qr_not_solana_address: '⚠️ *QR code does not contain a Solana address*',
+    qr_content_label: '📄 *Content:*',
 };
 
 const zh: LocaleStrings = {
@@ -974,6 +1013,19 @@ const zh: LocaleStrings = {
     wallet_created_warning_4: '• 此消息将在60秒后自动删除',
     wallet_import_title: '📥 *导入现有钱包*',
     wallet_import_instruction: '发送您要导入的钱包的私钥。',
+
+    // QR Code scanning
+    qr_scanning: '🔍 正在扫描二维码...',
+    qr_no_code_found: '❌ 图片中未找到二维码。请发送更清晰的图片。',
+    qr_scan_error: '❌ 二维码扫描错误: {error}',
+    qr_address_detected: '✅ *检测到 Solana 钱包地址!*',
+    qr_address_label: '📍 *地址:*',
+    qr_what_to_do: '您想对这个地址做什么?',
+    qr_private_transfer: '🔐 私密转账',
+    qr_multi_send: '📤 添加到多地址发送',
+    qr_copy_address: '📋 复制地址',
+    qr_not_solana_address: '⚠️ *二维码不包含 Solana 地址*',
+    qr_content_label: '📄 *内容:*',
 };
 
 export const locales: Record<Language, LocaleStrings> = {

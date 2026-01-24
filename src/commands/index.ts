@@ -2,6 +2,7 @@ import { Context, Markup } from 'telegraf';
 import { WalletService, DepositResult } from '../services/walletService.js';
 import { BalanceMonitor } from '../services/balanceMonitor.js';
 import { parseNaturalLanguage, isNaturalLanguageCommand, generateConfirmationMessage, ParsedCommand } from '../services/nlpHandler.js';
+import { scanQRFromBuffer, downloadFile, parseSolanaUri, isValidSolanaAddress } from '../services/qrService.js';
 import { SUPPORTED_TOKENS, TokenSymbol, PRIVACY_CASH_FEES, calculateWithdrawFee } from '../config.js';
 import { formatSOL, formatToken, shortenAddress } from '../utils.js';
 import { Language, t, getLanguageKeyboard, locales } from '../locales/index.js';
@@ -1300,17 +1301,30 @@ export function registerCommands(
             await ctx.answerCbQuery();
             const lang = getLang(chatId);
 
+            // Get existing state to preserve recipientAddress if from QR scan
+            const existingState = userStates.get(chatId);
+            const recipientAddress = existingState?.recipientAddress;
+
             userStates.set(chatId, { 
                 action: 'private_transfer', 
                 token: symbol as TokenSymbol, 
-                step: 'enter_amount' 
+                step: 'enter_amount',
+                recipientAddress: recipientAddress // Preserve address if exists
             });
 
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
+            let message = `🔐 *Private Transfer ${symbol}*\n\n` +
+                `Token: ${tokenInfo.name}\n`;
+            
+            // Show recipient address if already set (from QR)
+            if (recipientAddress) {
+                message += `📍 To: \`${shortenAddress(recipientAddress)}\`\n`;
+            }
+            
+            message += `\n${t(lang, 'private_transfer_enter_amount', { token: symbol })}`;
+
             await safeEditOrReply(ctx,
-                `🔐 *Private Transfer ${symbol}*\n\n` +
-                `Token: ${tokenInfo.name}\n\n` +
-                `${t(lang, 'private_transfer_enter_amount', { token: symbol })}`,
+                message,
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
             );
         });
@@ -1839,6 +1853,34 @@ export function registerCommands(
             }
 
             state.amount = amount;
+            
+            // If address already exists (from QR scan), skip to confirm
+            if (state.recipientAddress) {
+                state.step = 'confirm';
+                userStates.set(chatId, state);
+
+                // Calculate estimated fees
+                const shieldFee = PRIVACY_CASH_FEES.deposit.estimatedTxFeeSOL;
+                const unshieldFee = calculateWithdrawFee(state.amount);
+                const totalFee = shieldFee + unshieldFee.totalFee;
+                const recipientReceives = state.amount - unshieldFee.totalFee;
+
+                await ctx.reply(
+                    `${t(lang, 'private_transfer_confirm_title')}\n\n` +
+                    `${t(lang, 'private_transfer_confirm_token', { token: state.token })}\n` +
+                    `${t(lang, 'private_transfer_confirm_amount', { amount: state.amount })}\n` +
+                    `${t(lang, 'private_transfer_confirm_to', { address: shortenAddress(state.recipientAddress) })}\n\n` +
+                    `${t(lang, 'private_transfer_confirm_fee_breakdown')}\n` +
+                    `${t(lang, 'private_transfer_confirm_shield_fee', { fee: shieldFee.toFixed(4) })}\n` +
+                    `${t(lang, 'private_transfer_confirm_unshield_fee', { fee: unshieldFee.totalFee.toFixed(4), percent: (PRIVACY_CASH_FEES.withdraw.percentageFee * 100).toFixed(2) })}\n` +
+                    `${t(lang, 'private_transfer_confirm_total_fee', { fee: totalFee.toFixed(4) })}\n\n` +
+                    `${t(lang, 'private_transfer_confirm_recipient_receives', { amount: recipientReceives.toFixed(6), token: state.token })}`,
+                    { parse_mode: 'Markdown', ...getConfirmKeyboard('private_transfer', lang) }
+                );
+                return;
+            }
+
+            // No address yet, ask for it
             state.step = 'enter_address';
             userStates.set(chatId, state);
 
@@ -1978,6 +2020,133 @@ export function registerCommands(
             return;
         }
     });
+
+    // ==================== PHOTO MESSAGE HANDLER (for QR code scanning) ====================
+
+    bot.on('photo', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        const lang = getLang(chatId);
+
+        // Check if user has a wallet
+        if (!walletService.hasWallet(chatId)) {
+            await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+            return;
+        }
+
+        try {
+            // Send scanning message
+            const statusMsg = await ctx.reply(t(lang, 'qr_scanning'));
+
+            // @ts-ignore - Get the largest photo (best quality)
+            const photos = ctx.message?.photo;
+            if (!photos || photos.length === 0) {
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    statusMsg.message_id,
+                    undefined,
+                    t(lang, 'qr_no_code_found')
+                );
+                return;
+            }
+
+            // Get the largest photo (last in array)
+            const largestPhoto = photos[photos.length - 1];
+            
+            // Get file URL from Telegram
+            const fileLink = await ctx.telegram.getFileLink(largestPhoto.file_id);
+            
+            // Download the image
+            const imageBuffer = await downloadFile(fileLink.href);
+            
+            // Scan QR code
+            const scanResult = await scanQRFromBuffer(imageBuffer);
+
+            if (!scanResult.success) {
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    statusMsg.message_id,
+                    undefined,
+                    t(lang, 'qr_no_code_found')
+                );
+                return;
+            }
+
+            // Check if it's a Solana address
+            if (scanResult.isSolanaAddress && scanResult.data) {
+                const parsed = parseSolanaUri(scanResult.data);
+                const address = parsed?.address || scanResult.data;
+
+                // Store the detected address for use in callbacks
+                userStates.set(chatId, { 
+                    action: 'private_transfer', 
+                    step: 'select_token',
+                    recipientAddress: address 
+                });
+
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    statusMsg.message_id,
+                    undefined,
+                    `${t(lang, 'qr_address_detected')}\n\n` +
+                    `${t(lang, 'qr_address_label')}\n\`${address}\`\n\n` +
+                    `${t(lang, 'qr_what_to_do')}`,
+                    { 
+                        parse_mode: 'Markdown',
+                        ...Markup.inlineKeyboard([
+                            [Markup.button.callback(t(lang, 'qr_private_transfer'), `qr_transfer_${address.substring(0, 20)}`)],
+                            [Markup.button.callback(t(lang, 'back_to_menu'), 'action_menu')]
+                        ])
+                    }
+                );
+            } else {
+                // Not a Solana address, show the content
+                await ctx.telegram.editMessageText(
+                    chatId,
+                    statusMsg.message_id,
+                    undefined,
+                    `${t(lang, 'qr_not_solana_address')}\n\n` +
+                    `${t(lang, 'qr_content_label')}\n\`${scanResult.data?.substring(0, 200) || ''}\``,
+                    { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                );
+            }
+        } catch (error) {
+            console.error('QR scan error:', error);
+            await ctx.reply(
+                t(lang, 'qr_scan_error', { error: error instanceof Error ? error.message : 'Unknown error' }),
+                { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+            );
+        }
+    });
+
+    // Handle QR transfer action - starts private transfer with pre-filled address
+    bot.action(/^qr_transfer_/, async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        await ctx.answerCbQuery();
+        const lang = getLang(chatId);
+
+        // Get the stored address from state
+        const state = userStates.get(chatId);
+        if (!state || !state.recipientAddress) {
+            await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
+            return;
+        }
+
+        // Update state for private transfer token selection
+        userStates.set(chatId, { 
+            action: 'private_transfer', 
+            step: 'select_token',
+            recipientAddress: state.recipientAddress 
+        });
+
+        await safeEditOrReply(ctx,
+            `🔐 *Private Transfer*\n\n` +
+            `📍 ${t(lang, 'private_transfer_confirm_to', { address: shortenAddress(state.recipientAddress) })}\n\n` +
+            `${t(lang, 'private_transfer_select_token')}`,
+            { parse_mode: 'Markdown', ...getPrivateTransferTokenKeyboard(lang) }
+        );
+    });
 }
 
 /**
@@ -2114,6 +2283,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 *🔐 Chuyển tiền riêng tư*
 /transfer - Gửi token ẩn danh đến 1 địa chỉ
 /multisend - Gửi token ẩn danh đến nhiều địa chỉ cùng lúc
+📷 Gửi ảnh QR chứa địa chỉ ví để chuyển tiền nhanh!
 
 *🔔 Theo dõi*
 /monitor - Bật thông báo
@@ -2152,6 +2322,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 *🔐 Private Transfers*
 /transfer - Send tokens anonymously to 1 address
 /multisend - Send tokens anonymously to multiple addresses at once
+📷 Send a QR image with wallet address for quick transfer!
 
 *🔔 Monitoring*
 /monitor - Enable notifications
@@ -2190,6 +2361,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 *🔐 私密转账*
 /transfer - 匿名发送代币到1个地址
 /multisend - 同时匿名发送代币到多个地址
+📷 发送带有钱包地址的二维码图片以快速转账!
 
 *🔔 监控*
 /monitor - 启用通知
