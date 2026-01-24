@@ -32,12 +32,19 @@ function markdownToHtml(text: string): string {
 }
 
 // User state management for multi-step operations
+interface MultiSendRecipient {
+    address: string;
+    amount: number;
+}
+
 interface UserState {
-    action?: 'deposit' | 'withdraw' | 'connect';
+    action?: 'shield' | 'unshield' | 'private_transfer' | 'connect' | 'multi_private_send';
     token?: TokenSymbol;
     amount?: number;
-    step?: 'select_token' | 'enter_amount' | 'enter_address' | 'enter_private_key' | 'confirm';
+    step?: 'select_token' | 'enter_amount' | 'enter_address' | 'enter_private_key' | 'confirm' | 'enter_recipients';
     recipientAddress?: string;
+    // Multi private send fields
+    multiRecipients?: MultiSendRecipient[];
 }
 
 const userStates: Map<number, UserState> = new Map();
@@ -61,8 +68,12 @@ function getMainMenuKeyboard(hasWallet: boolean, lang: Language) {
                 Markup.button.callback(t(lang, 'menu_private_balance'), 'action_private_balance')
             ],
             [
-                Markup.button.callback(t(lang, 'menu_deposit'), 'action_deposit'),
-                Markup.button.callback(t(lang, 'menu_withdraw'), 'action_withdraw')
+                Markup.button.callback(t(lang, 'menu_shield'), 'action_shield'),
+                Markup.button.callback(t(lang, 'menu_unshield'), 'action_unshield')
+            ],
+            [
+                Markup.button.callback(t(lang, 'menu_private_transfer'), 'action_private_transfer'),
+                Markup.button.callback(t(lang, 'menu_multi_private_send'), 'action_multi_private_send')
             ],
             [
                 Markup.button.callback(t(lang, 'menu_wallet_info'), 'action_wallet'),
@@ -94,11 +105,11 @@ function getMainMenuKeyboard(hasWallet: boolean, lang: Language) {
 }
 
 /**
- * Get token selection keyboard for deposit
+ * Get token selection keyboard for shield
  */
-function getDepositTokenKeyboard(lang: Language) {
-    const buttons = Object.keys(SUPPORTED_TOKENS).map(symbol => 
-        Markup.button.callback(`${symbol === 'SOL' ? '◎' : '🪙'} ${symbol}`, `deposit_token_${symbol}`)
+function getShieldTokenKeyboard(lang: Language) {
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+        Markup.button.callback(`${info.icon} ${symbol}`, `shield_token_${symbol}`)
     );
     
     // Arrange in rows of 3
@@ -112,11 +123,11 @@ function getDepositTokenKeyboard(lang: Language) {
 }
 
 /**
- * Get token selection keyboard for withdraw
+ * Get token selection keyboard for unshield
  */
-function getWithdrawTokenKeyboard(lang: Language) {
-    const buttons = Object.keys(SUPPORTED_TOKENS).map(symbol => 
-        Markup.button.callback(`${symbol === 'SOL' ? '◎' : '🪙'} ${symbol}`, `withdraw_token_${symbol}`)
+function getUnshieldTokenKeyboard(lang: Language) {
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+        Markup.button.callback(`${info.icon} ${symbol}`, `unshield_token_${symbol}`)
     );
     
     // Arrange in rows of 3
@@ -130,12 +141,48 @@ function getWithdrawTokenKeyboard(lang: Language) {
 }
 
 /**
- * Get withdraw destination keyboard
+ * Get token selection keyboard for private transfer
  */
-function getWithdrawDestinationKeyboard(lang: Language) {
+function getPrivateTransferTokenKeyboard(lang: Language) {
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+        Markup.button.callback(`${info.icon} ${symbol}`, `ptransfer_token_${symbol}`)
+    );
+    
+    // Arrange in rows of 3
+    const rows = [];
+    for (let i = 0; i < buttons.length; i += 3) {
+        rows.push(buttons.slice(i, i + 3));
+    }
+    rows.push([Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]);
+    
+    return Markup.inlineKeyboard(rows);
+}
+
+/**
+ * Get token selection keyboard for multi private send
+ */
+function getMultiPrivateSendTokenKeyboard(lang: Language) {
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+        Markup.button.callback(`${info.icon} ${symbol}`, `multi_send_token_${symbol}`)
+    );
+    
+    // Arrange in rows of 3
+    const rows = [];
+    for (let i = 0; i < buttons.length; i += 3) {
+        rows.push(buttons.slice(i, i + 3));
+    }
+    rows.push([Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]);
+    
+    return Markup.inlineKeyboard(rows);
+}
+
+/**
+ * Get unshield destination keyboard
+ */
+function getUnshieldDestinationKeyboard(lang: Language) {
     return Markup.inlineKeyboard([
-        [Markup.button.callback(t(lang, 'withdraw_to_self'), 'withdraw_to_self')],
-        [Markup.button.callback(t(lang, 'withdraw_to_other'), 'withdraw_to_other')],
+        [Markup.button.callback(t(lang, 'unshield_to_self'), 'unshield_to_self')],
+        [Markup.button.callback(t(lang, 'unshield_to_other'), 'unshield_to_other')],
         [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
     ]);
 }
@@ -227,6 +274,10 @@ export function registerCommands(
     bot.command('withdraw', (ctx: Context) => handleWithdraw(ctx, walletService, balanceMonitor));
     bot.command('withdrawsol', (ctx: Context) => handleWithdrawSOL(ctx, walletService, balanceMonitor));
     bot.command('withdrawtoken', (ctx: Context) => handleWithdrawToken(ctx, walletService, balanceMonitor));
+
+    // Private transfer commands
+    bot.command('transfer', (ctx: Context) => handlePrivateTransfer(ctx, walletService));
+    bot.command('multisend', (ctx: Context) => handleMultiPrivateSend(ctx, walletService));
 
     // Monitoring commands
     bot.command('monitor', (ctx: Context) => handleMonitor(ctx, walletService));
@@ -538,7 +589,7 @@ export function registerCommands(
             let message = `${t(lang, 'balance_title')}\n\n`;
             
             // SOL
-            message += `*◎ SOL*\n`;
+            message += `*${SUPPORTED_TOKENS.SOL.icon} SOL*\n`;
             message += `  ${t(lang, 'balance_public')} \`${formatSOL(balances.sol.public)}\` SOL\n`;
             message += `  ${t(lang, 'balance_private')} \`${formatSOL(balances.sol.private)}\` SOL\n\n`;
 
@@ -548,7 +599,7 @@ export function registerCommands(
 
                 const tokenBalance = balances.tokens[symbol as TokenSymbol];
                 if (tokenBalance && (tokenBalance.public > 0 || tokenBalance.private > 0)) {
-                    message += `*🪙 ${symbol}*\n`;
+                    message += `*${tokenInfo.icon} ${symbol}*\n`;
                     message += `  ${t(lang, 'balance_public')} \`${formatToken(tokenBalance.public, symbol as TokenSymbol)}\` ${symbol}\n`;
                     message += `  ${t(lang, 'balance_private')} \`${formatToken(tokenBalance.private, symbol as TokenSymbol)}\` ${symbol}\n\n`;
                 }
@@ -584,13 +635,13 @@ export function registerCommands(
             }
 
             let message = `${t(lang, 'private_balance_title')}\n\n`;
-            message += `*◎ SOL:* \`${formatSOL(balances.sol.private)}\` SOL\n`;
+            message += `*${SUPPORTED_TOKENS.SOL.icon} SOL:* \`${formatSOL(balances.sol.private)}\` SOL\n`;
 
-            for (const [symbol] of Object.entries(SUPPORTED_TOKENS)) {
+            for (const [symbol, tokenInfo] of Object.entries(SUPPORTED_TOKENS)) {
                 if (symbol === 'SOL') continue;
                 const tokenBalance = balances.tokens[symbol as TokenSymbol];
                 if (tokenBalance && tokenBalance.private > 0) {
-                    message += `*🪙 ${symbol}:* \`${formatToken(tokenBalance.private, symbol as TokenSymbol)}\` ${symbol}\n`;
+                    message += `*${tokenInfo.icon} ${symbol}:* \`${formatToken(tokenBalance.private, symbol as TokenSymbol)}\` ${symbol}\n`;
                 }
             }
 
@@ -632,8 +683,7 @@ export function registerCommands(
         let message = `${t(lang, 'tokens_title')}\n\n`;
 
         for (const [symbol, info] of Object.entries(SUPPORTED_TOKENS)) {
-            const icon = symbol === 'SOL' ? '◎' : '🪙';
-            message += `${icon} *${symbol}* - ${info.name}\n`;
+            message += `${info.icon} *${symbol}* - ${info.name}\n`;
             message += `   ${t(lang, 'tokens_decimals')} ${info.decimals}\n`;
             message += `   ${t(lang, 'tokens_mint')} \`${shortenAddress(info.mintAddress, 6)}\`\n\n`;
         }
@@ -753,8 +803,8 @@ export function registerCommands(
         const token = parsed.token || 'SOL';
 
         // Execute the command based on intent
-        if (parsed.intent === 'deposit' && parsed.amount) {
-            // Check public balance before depositing
+        if (parsed.intent === 'shield' && parsed.amount) {
+            // Check public balance before shielding
             try {
                 const balances = await walletService.getBalances(chatId, true);
                 if (balances) {
@@ -767,7 +817,7 @@ export function registerCommands(
 
                     if (publicBalance < parsed.amount) {
                         await safeEditOrReply(ctx,
-                            t(lang, 'error_insufficient_balance_deposit', {
+                            t(lang, 'error_insufficient_balance_shield', {
                                 balance: publicBalance.toFixed(6),
                                 token: token,
                                 amount: parsed.amount.toString()
@@ -781,7 +831,7 @@ export function registerCommands(
                 console.error('Error checking balance:', balanceError);
             }
 
-            await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
+            await safeEditOrReply(ctx, t(lang, 'shield_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
             
             try {
                 let result;
@@ -793,36 +843,36 @@ export function registerCommands(
 
                 if (result.success) {
                     await ctx.reply(
-                        `${t(lang, 'deposit_success')}\n\n` +
-                        `${t(lang, 'deposit_success_amount', { amount: parsed.amount, token: token })}\n` +
-                        `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
-                        `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
+                        `${t(lang, 'shield_success')}\n\n` +
+                        `${t(lang, 'shield_success_amount', { amount: parsed.amount, token: token })}\n` +
+                        `${t(lang, 'shield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                        `${t(lang, 'shield_success_link', { signature: result.signature || '' })}`,
                         { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
                     );
                 } else {
-                    // Handle detailed error for deposit
-                    let errorMsg = `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`;
+                    // Handle detailed error for shield
+                    let errorMsg = `${t(lang, 'shield_failed')}\n\n${t(lang, 'error')} ${result.error}`;
                     if (result.errorCode === 'INSUFFICIENT_BALANCE' && result.details) {
                         const { required, available, shortfall, estimatedFee } = result.details;
                         const messages: Record<Language, string> = {
                             vi: `❌ *Không đủ số dư!*\n\n` +
                                 `📊 *Chi tiết:*\n` +
                                 `• Số dư hiện tại: \`${available.toFixed(6)} ${token}\`\n` +
-                                `• Số lượng deposit: \`${parsed.amount} ${token}\`\n` +
+                                `• Số lượng shield: \`${parsed.amount} ${token}\`\n` +
                                 `• Phí giao dịch (ước tính): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
                                 `• Tổng cần: \`${required.toFixed(6)} ${token}\`\n\n` +
                                 `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} ${token}\``,
                             en: `❌ *Insufficient balance!*\n\n` +
                                 `📊 *Details:*\n` +
                                 `• Current balance: \`${available.toFixed(6)} ${token}\`\n` +
-                                `• Deposit amount: \`${parsed.amount} ${token}\`\n` +
+                                `• Shield amount: \`${parsed.amount} ${token}\`\n` +
                                 `• Transaction fee (estimated): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
                                 `• Total required: \`${required.toFixed(6)} ${token}\`\n\n` +
                                 `💰 *Need to add:* \`${shortfall.toFixed(6)} ${token}\``,
                             zh: `❌ *余额不足！*\n\n` +
                                 `📊 *详情:*\n` +
                                 `• 当前余额: \`${available.toFixed(6)} ${token}\`\n` +
-                                `• 存入金额: \`${parsed.amount} ${token}\`\n` +
+                                `• Shield金额: \`${parsed.amount} ${token}\`\n` +
                                 `• 交易费用（估计）: \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
                                 `• 需要总额: \`${required.toFixed(6)} ${token}\`\n\n` +
                                 `💰 *需要充值:* \`${shortfall.toFixed(6)} ${token}\``,
@@ -837,10 +887,10 @@ export function registerCommands(
                     { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
                 );
             }
-        } else if ((parsed.intent === 'withdraw' || parsed.intent === 'transfer') && parsed.amount) {
-            const recipientAddress = parsed.address; // undefined for withdraw to self
+        } else if ((parsed.intent === 'unshield' || parsed.intent === 'private_transfer') && parsed.amount) {
+            const recipientAddress = parsed.address; // undefined for unshield to self
             
-            // Check private balance before withdrawing
+            // Check private balance before unshielding
             try {
                 const balances = await walletService.getBalances(chatId, true);
                 if (balances) {
@@ -853,7 +903,7 @@ export function registerCommands(
 
                     if (privateBalance < parsed.amount) {
                         await safeEditOrReply(ctx,
-                            t(lang, 'error_insufficient_balance_withdraw', {
+                            t(lang, 'error_insufficient_balance_unshield', {
                                 balance: privateBalance.toFixed(6),
                                 token: token,
                                 amount: parsed.amount.toString()
@@ -867,7 +917,7 @@ export function registerCommands(
                 console.error('Error checking balance:', balanceError);
             }
 
-            await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
+            await safeEditOrReply(ctx, t(lang, 'unshield_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
             
             try {
                 let result;
@@ -880,15 +930,15 @@ export function registerCommands(
                 if (result.success) {
                     const wallet = walletService.getWallet(chatId);
                     const recipient = recipientAddress || wallet?.publicKey || '';
-                    let message = `${t(lang, 'withdraw_success')}\n\n`;
-                    message += `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n`;
-                    message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
-                    message += `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`;
+                    let message = `${t(lang, 'unshield_success')}\n\n`;
+                    message += `${t(lang, 'unshield_success_to', { address: shortenAddress(recipient) })}\n`;
+                    message += `${t(lang, 'unshield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
+                    message += `${t(lang, 'unshield_success_link', { signature: result.signature || '' })}`;
 
                     await ctx.reply(message, { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) });
                 } else {
                     await ctx.reply(
-                        `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                        `${t(lang, 'unshield_failed')}\n\n${t(lang, 'error')} ${result.error}`,
                         { parse_mode: 'Markdown', ...getMainMenuKeyboard(true, lang) }
                     );
                 }
@@ -916,9 +966,9 @@ export function registerCommands(
         );
     });
 
-    // ==================== DEPOSIT FLOW ====================
+    // ==================== SHIELD FLOW ====================
 
-    bot.action('action_deposit', async (ctx: Context) => {
+    bot.action('action_shield', async (ctx: Context) => {
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
@@ -929,40 +979,40 @@ export function registerCommands(
             return;
         }
 
-        userStates.set(chatId, { action: 'deposit', step: 'select_token' });
+        userStates.set(chatId, { action: 'shield', step: 'select_token' });
         await safeEditOrReply(ctx,
-            `${t(lang, 'deposit_title')}\n\n${t(lang, 'deposit_select_token')}`,
-            { parse_mode: 'Markdown', ...getDepositTokenKeyboard(lang) }
+            `${t(lang, 'shield_title')}\n\n${t(lang, 'shield_select_token')}`,
+            { parse_mode: 'Markdown', ...getShieldTokenKeyboard(lang) }
         );
     });
 
-    // Handle deposit token selection
+    // Handle shield token selection
     for (const symbol of Object.keys(SUPPORTED_TOKENS)) {
-        bot.action(`deposit_token_${symbol}`, async (ctx: Context) => {
+        bot.action(`shield_token_${symbol}`, async (ctx: Context) => {
             const chatId = ctx.chat?.id;
             if (!chatId) return;
             await ctx.answerCbQuery();
             const lang = getLang(chatId);
 
             userStates.set(chatId, { 
-                action: 'deposit', 
+                action: 'shield', 
                 token: symbol as TokenSymbol, 
                 step: 'enter_amount' 
             });
 
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
             await safeEditOrReply(ctx,
-                `📥 *${lang === 'vi' ? 'Nạp' : lang === 'en' ? 'Deposit' : '存入'} ${symbol}*\n\n` +
-                `${t(lang, 'deposit_token_info', { name: tokenInfo.name, decimals: tokenInfo.decimals })}\n\n` +
-                `${t(lang, 'deposit_enter_amount', { token: symbol })}`,
+                `🛡️ *Shield ${symbol}*\n\n` +
+                `${t(lang, 'shield_token_info', { name: tokenInfo.name, decimals: tokenInfo.decimals })}\n\n` +
+                `${t(lang, 'shield_enter_amount', { token: symbol })}`,
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
             );
         });
     }
 
-    // ==================== WITHDRAW FLOW ====================
+    // ==================== UNSHIELD FLOW ====================
 
-    bot.action('action_withdraw', async (ctx: Context) => {
+    bot.action('action_unshield', async (ctx: Context) => {
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
@@ -973,45 +1023,45 @@ export function registerCommands(
             return;
         }
 
-        userStates.set(chatId, { action: 'withdraw', step: 'select_token' });
+        userStates.set(chatId, { action: 'unshield', step: 'select_token' });
         await safeEditOrReply(ctx,
-            `${t(lang, 'withdraw_title')}\n\n${t(lang, 'withdraw_select_token')}`,
-            { parse_mode: 'Markdown', ...getWithdrawTokenKeyboard(lang) }
+            `${t(lang, 'unshield_title')}\n\n${t(lang, 'unshield_select_token')}`,
+            { parse_mode: 'Markdown', ...getUnshieldTokenKeyboard(lang) }
         );
     });
 
-    // Handle withdraw token selection
+    // Handle unshield token selection
     for (const symbol of Object.keys(SUPPORTED_TOKENS)) {
-        bot.action(`withdraw_token_${symbol}`, async (ctx: Context) => {
+        bot.action(`unshield_token_${symbol}`, async (ctx: Context) => {
             const chatId = ctx.chat?.id;
             if (!chatId) return;
             await ctx.answerCbQuery();
             const lang = getLang(chatId);
 
             userStates.set(chatId, { 
-                action: 'withdraw', 
+                action: 'unshield', 
                 token: symbol as TokenSymbol, 
                 step: 'enter_amount' 
             });
 
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
             await safeEditOrReply(ctx,
-                `📤 *${lang === 'vi' ? 'Rút' : lang === 'en' ? 'Withdraw' : '提取'} ${symbol}*\n\n` +
+                `📤 *Unshield ${symbol}*\n\n` +
                 `Token: ${tokenInfo.name}\n\n` +
-                `${t(lang, 'withdraw_enter_amount', { token: symbol })}`,
+                `${t(lang, 'unshield_enter_amount', { token: symbol })}`,
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
             );
         });
     }
 
-    bot.action('withdraw_to_self', async (ctx: Context) => {
+    bot.action('unshield_to_self', async (ctx: Context) => {
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
 
         const state = userStates.get(chatId);
-        if (!state || state.action !== 'withdraw' || !state.token || !state.amount) {
+        if (!state || state.action !== 'unshield' || !state.token || !state.amount) {
             await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
             return;
         }
@@ -1022,24 +1072,24 @@ export function registerCommands(
 
         const wallet = walletService.getWallet(chatId);
         await safeEditOrReply(ctx,
-            `${t(lang, 'withdraw_confirm_title')}\n\n` +
-            `${t(lang, 'withdraw_confirm_token', { token: state.token })}\n` +
-            `${t(lang, 'withdraw_confirm_amount', { amount: state.amount })}\n` +
-            `${t(lang, 'withdraw_confirm_to', { address: shortenAddress(wallet?.publicKey || '') })} ${t(lang, 'withdraw_confirm_to_self')}\n\n` +
-            `${t(lang, 'withdraw_confirm_estimated_fee')}\n` +
-            `${t(lang, 'withdraw_confirm_fee_note')}`,
-            { parse_mode: 'Markdown', ...getConfirmKeyboard('withdraw', lang) }
+            `${t(lang, 'unshield_confirm_title')}\n\n` +
+            `${t(lang, 'unshield_confirm_token', { token: state.token })}\n` +
+            `${t(lang, 'unshield_confirm_amount', { amount: state.amount })}\n` +
+            `${t(lang, 'unshield_confirm_to', { address: shortenAddress(wallet?.publicKey || '') })} ${t(lang, 'unshield_confirm_to_self')}\n\n` +
+            `${t(lang, 'unshield_confirm_estimated_fee')}\n` +
+            `${t(lang, 'unshield_confirm_fee_note')}`,
+            { parse_mode: 'Markdown', ...getConfirmKeyboard('unshield', lang) }
         );
     });
 
-    bot.action('withdraw_to_other', async (ctx: Context) => {
+    bot.action('unshield_to_other', async (ctx: Context) => {
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
 
         const state = userStates.get(chatId);
-        if (!state || state.action !== 'withdraw' || !state.token || !state.amount) {
+        if (!state || state.action !== 'unshield' || !state.token || !state.amount) {
             await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
             return;
         }
@@ -1048,25 +1098,25 @@ export function registerCommands(
         userStates.set(chatId, state);
 
         await safeEditOrReply(ctx,
-            `📤 *${lang === 'vi' ? 'Rút' : lang === 'en' ? 'Withdraw' : '提取'} ${state.amount} ${state.token}*\n\n` +
-            `${t(lang, 'withdraw_enter_address')}`,
+            `📤 *Unshield ${state.amount} ${state.token}*\n\n` +
+            `${t(lang, 'unshield_enter_address')}`,
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
         );
     });
 
-    bot.action('confirm_withdraw', async (ctx: Context) => {
+    bot.action('confirm_unshield', async (ctx: Context) => {
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         const lang = getLang(chatId);
         await ctx.answerCbQuery(t(lang, 'loading'));
 
         const state = userStates.get(chatId);
-        if (!state || state.action !== 'withdraw' || !state.token || !state.amount) {
+        if (!state || state.action !== 'unshield' || !state.token || !state.amount) {
             await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
             return;
         }
 
-        // Check private balance before withdrawing
+        // Check private balance before unshielding
         try {
             const balances = await walletService.getBalances(chatId, true);
             if (balances) {
@@ -1080,7 +1130,7 @@ export function registerCommands(
 
                 if (privateBalance < state.amount) {
                     await safeEditOrReply(ctx,
-                        t(lang, 'error_insufficient_balance_withdraw', {
+                        t(lang, 'error_insufficient_balance_unshield', {
                             balance: privateBalance.toFixed(6),
                             token: state.token,
                             amount: state.amount.toString()
@@ -1093,10 +1143,10 @@ export function registerCommands(
             }
         } catch (balanceError) {
             console.error('Error checking balance:', balanceError);
-            // Continue with withdrawal even if balance check fails
+            // Continue with unshield even if balance check fails
         }
 
-        await safeEditOrReply(ctx, t(lang, 'withdraw_processing', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
+        await safeEditOrReply(ctx, t(lang, 'unshield_processing', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
 
         try {
             let result;
@@ -1111,25 +1161,25 @@ export function registerCommands(
                 const wallet = walletService.getWallet(chatId);
                 const recipient = state.recipientAddress || wallet?.publicKey || '';
                 
-                let message = `${t(lang, 'withdraw_success')}\n\n`;
-                message += `${t(lang, 'withdraw_success_token', { token: state.token })}\n`;
-                message += `${t(lang, 'withdraw_success_amount', { amount: state.amount })}\n`;
+                let message = `${t(lang, 'unshield_success')}\n\n`;
+                message += `${t(lang, 'unshield_success_token', { token: state.token })}\n`;
+                message += `${t(lang, 'unshield_success_amount', { amount: state.amount })}\n`;
                 
                 if (state.token === 'SOL' && 'actualAmount' in result && 'fee' in result) {
                     const actualAmount = ((result.actualAmount as number) || 0) / 1e9;
                     const fee = ((result.fee as number) || 0) / 1e9;
-                    message += `${t(lang, 'withdraw_success_received', { amount: actualAmount.toFixed(6) })}\n`;
-                    message += `${t(lang, 'withdraw_success_fee', { fee: fee.toFixed(6) })}\n`;
+                    message += `${t(lang, 'unshield_success_received', { amount: actualAmount.toFixed(6) })}\n`;
+                    message += `${t(lang, 'unshield_success_fee', { fee: fee.toFixed(6) })}\n`;
                 }
                 
-                message += `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n`;
-                message += `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
-                message += `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`;
+                message += `${t(lang, 'unshield_success_to', { address: shortenAddress(recipient) })}\n`;
+                message += `${t(lang, 'unshield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
+                message += `${t(lang, 'unshield_success_link', { signature: result.signature || '' })}`;
 
                 await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
             } else {
                 await safeEditOrReply(ctx,
-                    `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                    `${t(lang, 'unshield_failed')}\n\n${t(lang, 'error')} ${result.error}`,
                     { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
                 );
             }
@@ -1143,19 +1193,19 @@ export function registerCommands(
         userStates.delete(chatId);
     });
 
-    bot.action('confirm_deposit', async (ctx: Context) => {
+    bot.action('confirm_shield', async (ctx: Context) => {
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         const lang = getLang(chatId);
         await ctx.answerCbQuery(t(lang, 'loading'));
 
         const state = userStates.get(chatId);
-        if (!state || state.action !== 'deposit' || !state.token || !state.amount) {
+        if (!state || state.action !== 'shield' || !state.token || !state.amount) {
             await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
             return;
         }
 
-        // Check public balance before depositing
+        // Check public balance before shielding
         try {
             const balances = await walletService.getBalances(chatId, true);
             if (balances) {
@@ -1169,7 +1219,7 @@ export function registerCommands(
 
                 if (publicBalance < state.amount) {
                     await safeEditOrReply(ctx,
-                        t(lang, 'error_insufficient_balance_deposit', {
+                        t(lang, 'error_insufficient_balance_shield', {
                             balance: publicBalance.toFixed(6),
                             token: state.token,
                             amount: state.amount.toString()
@@ -1182,10 +1232,10 @@ export function registerCommands(
             }
         } catch (balanceError) {
             console.error('Error checking balance:', balanceError);
-            // Continue with deposit even if balance check fails
+            // Continue with shield even if balance check fails
         }
 
-        await safeEditOrReply(ctx, t(lang, 'deposit_processing', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
+        await safeEditOrReply(ctx, t(lang, 'shield_processing', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
 
         try {
             let result;
@@ -1198,15 +1248,15 @@ export function registerCommands(
             if (result.success) {
                 await balanceMonitor.refreshUserBalance(chatId);
                 await safeEditOrReply(ctx,
-                    `${t(lang, 'deposit_success')}\n\n` +
-                    `${t(lang, 'deposit_success_amount', { amount: state.amount, token: state.token })}\n` +
-                    `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
-                    `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
+                    `${t(lang, 'shield_success')}\n\n` +
+                    `${t(lang, 'shield_success_amount', { amount: state.amount, token: state.token })}\n` +
+                    `${t(lang, 'shield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                    `${t(lang, 'shield_success_link', { signature: result.signature || '' })}`,
                     { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
                 );
             } else {
                 await safeEditOrReply(ctx,
-                    `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                    `${t(lang, 'shield_failed')}\n\n${t(lang, 'error')} ${result.error}`,
                     { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
                 );
             }
@@ -1217,6 +1267,335 @@ export function registerCommands(
             );
         }
 
+        userStates.delete(chatId);
+    });
+
+    // ==================== PRIVATE TRANSFER FLOW ====================
+
+    bot.action('action_private_transfer', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        await ctx.answerCbQuery();
+        const lang = getLang(chatId);
+
+        if (!walletService.hasWallet(chatId)) {
+            await safeEditOrReply(ctx, t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+            return;
+        }
+
+        userStates.set(chatId, { action: 'private_transfer', step: 'select_token' });
+        await safeEditOrReply(ctx,
+            `${t(lang, 'private_transfer_title')}\n\n` +
+            `${t(lang, 'private_transfer_description')}\n\n` +
+            `${t(lang, 'private_transfer_select_token')}`,
+            { parse_mode: 'Markdown', ...getPrivateTransferTokenKeyboard(lang) }
+        );
+    });
+
+    // Handle private transfer token selection
+    for (const symbol of Object.keys(SUPPORTED_TOKENS)) {
+        bot.action(`ptransfer_token_${symbol}`, async (ctx: Context) => {
+            const chatId = ctx.chat?.id;
+            if (!chatId) return;
+            await ctx.answerCbQuery();
+            const lang = getLang(chatId);
+
+            userStates.set(chatId, { 
+                action: 'private_transfer', 
+                token: symbol as TokenSymbol, 
+                step: 'enter_amount' 
+            });
+
+            const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
+            await safeEditOrReply(ctx,
+                `🔐 *Private Transfer ${symbol}*\n\n` +
+                `Token: ${tokenInfo.name}\n\n` +
+                `${t(lang, 'private_transfer_enter_amount', { token: symbol })}`,
+                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+            );
+        });
+    }
+
+    bot.action('confirm_private_transfer', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        const lang = getLang(chatId);
+        await ctx.answerCbQuery(t(lang, 'loading'));
+
+        const state = userStates.get(chatId);
+        if (!state || state.action !== 'private_transfer' || !state.token || !state.amount || !state.recipientAddress) {
+            await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
+            return;
+        }
+
+        // Check public balance before private transfer (need balance for shield)
+        try {
+            const balances = await walletService.getBalances(chatId, true);
+            if (balances) {
+                let publicBalance = 0;
+                if (state.token === 'SOL') {
+                    publicBalance = balances.sol.public;
+                } else {
+                    const tokenKey = state.token as TokenSymbol;
+                    publicBalance = balances.tokens[tokenKey]?.public || 0;
+                }
+
+                if (publicBalance < state.amount) {
+                    await safeEditOrReply(ctx,
+                        t(lang, 'error_insufficient_balance_shield', {
+                            balance: publicBalance.toFixed(6),
+                            token: state.token,
+                            amount: state.amount.toString()
+                        }),
+                        { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                    );
+                    userStates.delete(chatId);
+                    return;
+                }
+            }
+        } catch (balanceError) {
+            console.error('Error checking balance:', balanceError);
+        }
+
+        // Step 1: Shield
+        await safeEditOrReply(ctx, t(lang, 'private_transfer_processing_shield', { amount: state.amount, token: state.token }), { parse_mode: 'Markdown' });
+
+        try {
+            let shieldResult;
+            if (state.token === 'SOL') {
+                shieldResult = await walletService.depositSOL(chatId, state.amount);
+            } else {
+                shieldResult = await walletService.depositSPL(chatId, state.token, state.amount);
+            }
+
+            if (!shieldResult.success) {
+                await safeEditOrReply(ctx,
+                    `${t(lang, 'private_transfer_failed')}\n\n` +
+                    `${t(lang, 'private_transfer_failed_shield', { error: shieldResult.error || 'Unknown error' })}`,
+                    { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                );
+                userStates.delete(chatId);
+                return;
+            }
+
+            // Step 2: Unshield to recipient
+            await safeEditOrReply(ctx, t(lang, 'private_transfer_processing_unshield'), { parse_mode: 'Markdown' });
+
+            let unshieldResult;
+            if (state.token === 'SOL') {
+                unshieldResult = await walletService.withdrawSOL(chatId, state.amount, state.recipientAddress);
+            } else {
+                unshieldResult = await walletService.withdrawSPL(chatId, state.token, state.amount, state.recipientAddress);
+            }
+
+            if (unshieldResult.success) {
+                await balanceMonitor.refreshUserBalance(chatId);
+                
+                let totalFee = 0;
+                if (state.token === 'SOL' && 'fee' in unshieldResult) {
+                    totalFee = ((unshieldResult.fee as number) || 0) / 1e9;
+                }
+                
+                let message = `${t(lang, 'private_transfer_success')}\n\n`;
+                message += `${t(lang, 'private_transfer_success_amount', { amount: state.amount, token: state.token })}\n`;
+                message += `${t(lang, 'private_transfer_success_to', { address: shortenAddress(state.recipientAddress) })}\n`;
+                if (totalFee > 0) {
+                    message += `${t(lang, 'private_transfer_success_fee', { fee: totalFee.toFixed(6) })}\n`;
+                }
+                message += `${t(lang, 'private_transfer_success_signature', { signature: shortenAddress(unshieldResult.signature || '', 8) })}\n`;
+                message += `${t(lang, 'private_transfer_success_link', { signature: unshieldResult.signature || '' })}`;
+
+                await safeEditOrReply(ctx, message, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
+            } else {
+                await safeEditOrReply(ctx,
+                    `${t(lang, 'private_transfer_failed')}\n\n` +
+                    `${t(lang, 'private_transfer_failed_unshield', { error: unshieldResult.error || 'Unknown error' })}`,
+                    { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                );
+            }
+        } catch (error) {
+            await safeEditOrReply(ctx,
+                `${t(lang, 'private_transfer_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+                { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+            );
+        }
+
+        userStates.delete(chatId);
+    });
+
+    // ==================== MULTI PRIVATE SEND FLOW ====================
+
+    bot.action('action_multi_private_send', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        await ctx.answerCbQuery();
+        const lang = getLang(chatId);
+
+        if (!walletService.hasWallet(chatId)) {
+            await safeEditOrReply(ctx, t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+            return;
+        }
+
+        userStates.set(chatId, { action: 'multi_private_send', step: 'select_token' });
+        await safeEditOrReply(ctx,
+            `${t(lang, 'multi_send_title')}\n\n` +
+            `${t(lang, 'multi_send_description')}\n\n` +
+            `${t(lang, 'multi_send_select_token')}`,
+            { parse_mode: 'Markdown', ...getMultiPrivateSendTokenKeyboard(lang) }
+        );
+    });
+
+    // Handle multi send token selection
+    for (const symbol of Object.keys(SUPPORTED_TOKENS)) {
+        bot.action(`multi_send_token_${symbol}`, async (ctx: Context) => {
+            const chatId = ctx.chat?.id;
+            if (!chatId) return;
+            await ctx.answerCbQuery();
+            const lang = getLang(chatId);
+
+            userStates.set(chatId, { 
+                action: 'multi_private_send', 
+                token: symbol as TokenSymbol, 
+                step: 'enter_recipients' 
+            });
+
+            const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
+            await safeEditOrReply(ctx,
+                `📤 *Multi Private Send ${symbol}*\n\n` +
+                `Token: ${tokenInfo.name}\n\n` +
+                `${t(lang, 'multi_send_enter_recipients')}\n\n` +
+                `${t(lang, 'multi_send_format_example')}`,
+                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+            );
+        });
+    }
+
+    bot.action('confirm_multi_private_send', async (ctx: Context) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+        const lang = getLang(chatId);
+        await ctx.answerCbQuery(t(lang, 'loading'));
+
+        const state = userStates.get(chatId);
+        if (!state || state.action !== 'multi_private_send' || !state.token || !state.multiRecipients || state.multiRecipients.length === 0) {
+            await safeEditOrReply(ctx, t(lang, 'error_session_expired'), getMainMenuKeyboard(true, lang));
+            return;
+        }
+
+        const totalAmount = state.multiRecipients.reduce((sum, r) => sum + r.amount, 0);
+        const totalRecipients = state.multiRecipients.length;
+
+        // Check public balance before multi send
+        try {
+            const balances = await walletService.getBalances(chatId, true);
+            if (balances) {
+                let publicBalance = 0;
+                if (state.token === 'SOL') {
+                    publicBalance = balances.sol.public / 1e9; // Convert lamports to SOL
+                } else {
+                    const tokenKey = state.token as TokenSymbol;
+                    const tokenInfo = SUPPORTED_TOKENS[tokenKey];
+                    publicBalance = (balances.tokens[tokenKey]?.public || 0) / tokenInfo.unitsPerToken;
+                }
+
+                if (publicBalance < totalAmount) {
+                    await safeEditOrReply(ctx,
+                        t(lang, 'error_insufficient_balance_shield', {
+                            balance: publicBalance.toFixed(6),
+                            token: state.token,
+                            amount: totalAmount.toString()
+                        }),
+                        { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                    );
+                    userStates.delete(chatId);
+                    return;
+                }
+            }
+        } catch (balanceError) {
+            console.error('Error checking balance:', balanceError);
+        }
+
+        // Process each recipient
+        let successCount = 0;
+        let failedRecipients: { address: string; amount: number; error: string }[] = [];
+        
+        for (let i = 0; i < state.multiRecipients.length; i++) {
+            const recipient = state.multiRecipients[i];
+            
+            await safeEditOrReply(ctx, 
+                `${t(lang, 'multi_send_processing', { current: i + 1, total: totalRecipients })}\n\n` +
+                `${t(lang, 'multi_send_processing_recipient', { amount: recipient.amount, token: state.token, address: shortenAddress(recipient.address) })}`,
+                { parse_mode: 'Markdown' }
+            );
+
+            try {
+                // Step 1: Shield
+                let shieldResult;
+                if (state.token === 'SOL') {
+                    shieldResult = await walletService.depositSOL(chatId, recipient.amount);
+                } else {
+                    shieldResult = await walletService.depositSPL(chatId, state.token, recipient.amount);
+                }
+
+                if (!shieldResult.success) {
+                    failedRecipients.push({ 
+                        address: recipient.address, 
+                        amount: recipient.amount, 
+                        error: `Shield failed: ${shieldResult.error}` 
+                    });
+                    continue;
+                }
+
+                // Step 2: Unshield to recipient
+                let unshieldResult;
+                if (state.token === 'SOL') {
+                    unshieldResult = await walletService.withdrawSOL(chatId, recipient.amount, recipient.address);
+                } else {
+                    unshieldResult = await walletService.withdrawSPL(chatId, state.token, recipient.amount, recipient.address);
+                }
+
+                if (unshieldResult.success) {
+                    successCount++;
+                } else {
+                    failedRecipients.push({ 
+                        address: recipient.address, 
+                        amount: recipient.amount, 
+                        error: `Unshield failed: ${unshieldResult.error}` 
+                    });
+                }
+            } catch (error) {
+                failedRecipients.push({ 
+                    address: recipient.address, 
+                    amount: recipient.amount, 
+                    error: error instanceof Error ? error.message : 'Unknown error' 
+                });
+            }
+        }
+
+        // Refresh balance after all transfers
+        await balanceMonitor.refreshUserBalance(chatId);
+
+        // Build result message
+        let resultMessage = '';
+        if (successCount === totalRecipients) {
+            resultMessage = `${t(lang, 'multi_send_success')}\n\n`;
+            resultMessage += `${t(lang, 'multi_send_success_summary', { success: successCount, total: totalRecipients })}`;
+        } else if (successCount > 0) {
+            resultMessage = `${t(lang, 'multi_send_partial_success', { success: successCount, total: totalRecipients })}\n\n`;
+            if (failedRecipients.length > 0) {
+                resultMessage += `❌ *Failed transfers:*\n`;
+                for (const failed of failedRecipients) {
+                    resultMessage += `• \`${shortenAddress(failed.address)}\`: ${failed.amount} ${state.token} - ${failed.error}\n`;
+                }
+            }
+        } else {
+            resultMessage = `${t(lang, 'multi_send_failed')}\n\n`;
+            for (const failed of failedRecipients) {
+                resultMessage += `• \`${shortenAddress(failed.address)}\`: ${failed.error}\n`;
+            }
+        }
+
+        await safeEditOrReply(ctx, resultMessage, { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
         userStates.delete(chatId);
     });
 
@@ -1283,9 +1662,9 @@ export function registerCommands(
                                 await ctx.reply(msg, getMainMenuKeyboard(true, lang));
                             }
                             return;
-                        case 'deposit':
-                        case 'withdraw':
-                        case 'transfer':
+                        case 'shield':
+                        case 'unshield':
+                        case 'private_transfer':
                             // Need wallet for these operations
                             if (!walletService.hasWallet(chatId)) {
                                 await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
@@ -1299,8 +1678,8 @@ export function registerCommands(
                             await ctx.reply(
                                 confirmMsg,
                                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                                    [Markup.button.callback('✅ ' + t(lang, 'confirm'), 'nlp_confirm')],
-                                    [Markup.button.callback('❌ ' + t(lang, 'cancel'), 'nlp_cancel')]
+                                    [Markup.button.callback(t(lang, 'confirm'), 'nlp_confirm')],
+                                    [Markup.button.callback(t(lang, 'cancel'), 'nlp_cancel')]
                                 ]) }
                             );
                             return;
@@ -1370,8 +1749,8 @@ export function registerCommands(
             return;
         }
 
-        // Handle deposit amount input
-        if (state.action === 'deposit' && state.step === 'enter_amount' && state.token) {
+        // Handle shield amount input
+        if (state.action === 'shield' && state.step === 'enter_amount' && state.token) {
             const amount = parseFloat(text);
             
             if (isNaN(amount) || amount <= 0) {
@@ -1387,16 +1766,16 @@ export function registerCommands(
             userStates.set(chatId, state);
 
             await ctx.reply(
-                `${t(lang, 'deposit_confirm_title')}\n\n` +
-                `${t(lang, 'deposit_confirm_token', { token: state.token })}\n` +
-                `${t(lang, 'deposit_confirm_amount', { amount: amount })}`,
-                { parse_mode: 'Markdown', ...getConfirmKeyboard('deposit', lang) }
+                `${t(lang, 'shield_confirm_title')}\n\n` +
+                `${t(lang, 'shield_confirm_token', { token: state.token })}\n` +
+                `${t(lang, 'shield_confirm_amount', { amount: amount })}`,
+                { parse_mode: 'Markdown', ...getConfirmKeyboard('shield', lang) }
             );
             return;
         }
 
-        // Handle withdraw amount input
-        if (state.action === 'withdraw' && state.step === 'enter_amount' && state.token) {
+        // Handle unshield amount input
+        if (state.action === 'unshield' && state.step === 'enter_amount' && state.token) {
             const amount = parseFloat(text);
             
             if (isNaN(amount) || amount <= 0) {
@@ -1411,15 +1790,15 @@ export function registerCommands(
             userStates.set(chatId, state);
 
             await ctx.reply(
-                `📤 *${lang === 'vi' ? 'Rút' : lang === 'en' ? 'Withdraw' : '提取'} ${amount} ${state.token}*\n\n` +
-                `${t(lang, 'withdraw_select_destination')}`,
-                { parse_mode: 'Markdown', ...getWithdrawDestinationKeyboard(lang) }
+                `📤 *Unshield ${amount} ${state.token}*\n\n` +
+                `${t(lang, 'unshield_select_destination')}`,
+                { parse_mode: 'Markdown', ...getUnshieldDestinationKeyboard(lang) }
             );
             return;
         }
 
-        // Handle withdraw address input
-        if (state.action === 'withdraw' && state.step === 'enter_address' && state.token && state.amount) {
+        // Handle unshield address input
+        if (state.action === 'unshield' && state.step === 'enter_address' && state.token && state.amount) {
             const address = text.trim();
             
             // Basic Solana address validation (base58, 32-44 chars)
@@ -1436,13 +1815,165 @@ export function registerCommands(
             userStates.set(chatId, state);
 
             await ctx.reply(
-                `${t(lang, 'withdraw_confirm_title')}\n\n` +
-                `${t(lang, 'withdraw_confirm_token', { token: state.token })}\n` +
-                `${t(lang, 'withdraw_confirm_amount', { amount: state.amount })}\n` +
-                `${t(lang, 'withdraw_confirm_to', { address: shortenAddress(address) })}\n\n` +
-                `${t(lang, 'withdraw_confirm_estimated_fee')}\n` +
-                `${t(lang, 'withdraw_confirm_fee_note')}`,
-                { parse_mode: 'Markdown', ...getConfirmKeyboard('withdraw', lang) }
+                `${t(lang, 'unshield_confirm_title')}\n\n` +
+                `${t(lang, 'unshield_confirm_token', { token: state.token })}\n` +
+                `${t(lang, 'unshield_confirm_amount', { amount: state.amount })}\n` +
+                `${t(lang, 'unshield_confirm_to', { address: shortenAddress(address) })}\n\n` +
+                `${t(lang, 'unshield_confirm_estimated_fee')}\n` +
+                `${t(lang, 'unshield_confirm_fee_note')}`,
+                { parse_mode: 'Markdown', ...getConfirmKeyboard('unshield', lang) }
+            );
+            return;
+        }
+
+        // Handle private transfer amount input
+        if (state.action === 'private_transfer' && state.step === 'enter_amount' && state.token) {
+            const amount = parseFloat(text);
+            
+            if (isNaN(amount) || amount <= 0) {
+                await ctx.reply(
+                    t(lang, 'error_invalid_amount'),
+                    Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]])
+                );
+                return;
+            }
+
+            state.amount = amount;
+            state.step = 'enter_address';
+            userStates.set(chatId, state);
+
+            await ctx.reply(
+                `🔐 *Private Transfer ${amount} ${state.token}*\n\n` +
+                `${t(lang, 'private_transfer_enter_address')}`,
+                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+            );
+            return;
+        }
+
+        // Handle private transfer address input
+        if (state.action === 'private_transfer' && state.step === 'enter_address' && state.token && state.amount) {
+            const address = text.trim();
+            
+            // Basic Solana address validation (base58, 32-44 chars)
+            if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+                await ctx.reply(
+                    t(lang, 'error_invalid_address'),
+                    Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]])
+                );
+                return;
+            }
+
+            state.recipientAddress = address;
+            state.step = 'confirm';
+            userStates.set(chatId, state);
+
+            // Calculate estimated fees
+            const shieldFee = PRIVACY_CASH_FEES.deposit.estimatedTxFeeSOL;
+            const unshieldFee = calculateWithdrawFee(state.amount);
+            const totalFee = shieldFee + unshieldFee.totalFee;
+            const recipientReceives = state.amount - unshieldFee.totalFee;
+
+            await ctx.reply(
+                `${t(lang, 'private_transfer_confirm_title')}\n\n` +
+                `${t(lang, 'private_transfer_confirm_token', { token: state.token })}\n` +
+                `${t(lang, 'private_transfer_confirm_amount', { amount: state.amount })}\n` +
+                `${t(lang, 'private_transfer_confirm_to', { address: shortenAddress(address) })}\n\n` +
+                `${t(lang, 'private_transfer_confirm_fee_breakdown')}\n` +
+                `${t(lang, 'private_transfer_confirm_shield_fee', { fee: shieldFee.toFixed(4) })}\n` +
+                `${t(lang, 'private_transfer_confirm_unshield_fee', { fee: unshieldFee.totalFee.toFixed(4), percent: (PRIVACY_CASH_FEES.withdraw.percentageFee * 100).toFixed(2) })}\n` +
+                `${t(lang, 'private_transfer_confirm_total_fee', { fee: totalFee.toFixed(4) })}\n\n` +
+                `${t(lang, 'private_transfer_confirm_recipient_receives', { amount: recipientReceives.toFixed(6), token: state.token })}`,
+                { parse_mode: 'Markdown', ...getConfirmKeyboard('private_transfer', lang) }
+            );
+            return;
+        }
+
+        // Handle multi private send recipients input
+        if (state.action === 'multi_private_send' && state.step === 'enter_recipients' && state.token) {
+            const lines = text.trim().split('\n').filter((line: string) => line.trim().length > 0);
+            
+            if (lines.length === 0) {
+                await ctx.reply(
+                    t(lang, 'multi_send_no_recipients'),
+                    Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]])
+                );
+                return;
+            }
+
+            const recipients: MultiSendRecipient[] = [];
+            const errors: string[] = [];
+
+            for (let i = 0; i < lines.length; i++) {
+                const line = lines[i].trim();
+                const lineNum = i + 1;
+                
+                // Parse "address, amount" format
+                const parts = line.split(',').map((p: string) => p.trim());
+                
+                if (parts.length !== 2) {
+                    errors.push(t(lang, 'multi_send_invalid_format', { line: lineNum, content: line }));
+                    continue;
+                }
+
+                const address = parts[0];
+                const amountStr = parts[1];
+                const amount = parseFloat(amountStr);
+
+                // Validate address
+                if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
+                    errors.push(t(lang, 'multi_send_invalid_address', { line: lineNum, address: shortenAddress(address) }));
+                    continue;
+                }
+
+                // Validate amount
+                if (isNaN(amount) || amount <= 0) {
+                    errors.push(t(lang, 'multi_send_invalid_amount', { line: lineNum, amount: amountStr }));
+                    continue;
+                }
+
+                recipients.push({ address, amount });
+            }
+
+            // If there are errors, show them
+            if (errors.length > 0) {
+                await ctx.reply(
+                    `❌ *Validation Errors:*\n\n${errors.join('\n')}\n\n${t(lang, 'multi_send_format_example')}`,
+                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+                );
+                return;
+            }
+
+            if (recipients.length === 0) {
+                await ctx.reply(
+                    t(lang, 'multi_send_no_recipients'),
+                    Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]])
+                );
+                return;
+            }
+
+            // Save recipients and move to confirm
+            state.multiRecipients = recipients;
+            state.step = 'confirm';
+            userStates.set(chatId, state);
+
+            // Build confirmation message
+            const totalAmount = recipients.reduce((sum, r) => sum + r.amount, 0);
+            let confirmMessage = `${t(lang, 'multi_send_confirm_title')}\n\n`;
+            confirmMessage += `${t(lang, 'multi_send_confirm_token', { token: state.token })}\n`;
+            confirmMessage += `${t(lang, 'multi_send_confirm_total_amount', { amount: totalAmount.toFixed(6), token: state.token })}\n`;
+            confirmMessage += `${t(lang, 'multi_send_confirm_recipients_count', { count: recipients.length })}\n\n`;
+            confirmMessage += `${t(lang, 'multi_send_confirm_recipients_list')}\n`;
+            
+            for (let i = 0; i < recipients.length; i++) {
+                const r = recipients[i];
+                confirmMessage += `${i + 1}. \`${shortenAddress(r.address)}\` - ${r.amount} ${state.token}\n`;
+            }
+            
+            confirmMessage += `\n${t(lang, 'multi_send_confirm_fee_note')}`;
+
+            await ctx.reply(
+                confirmMessage,
+                { parse_mode: 'Markdown', ...getConfirmKeyboard('multi_private_send', lang) }
             );
             return;
         }
@@ -1465,22 +1996,25 @@ async function handleStart(ctx: Context, walletService: WalletService): Promise<
     const featureMessages: Record<Language, string> = {
         vi: `Bot giúp bạn tương tác với Privacy Cash trên Solana blockchain cho các giao dịch riêng tư.\n\n` +
             `${t(lang, 'welcome_features')}\n` +
-            `• ${t(lang, 'welcome_feature_deposit')}\n` +
-            `• ${t(lang, 'welcome_feature_withdraw')}\n` +
+            `• ${t(lang, 'welcome_feature_shield')}\n` +
+            `• ${t(lang, 'welcome_feature_unshield')}\n` +
+            `• ${t(lang, 'welcome_feature_private_transfer')}\n` +
             `• ${t(lang, 'welcome_feature_balance')}\n` +
             `• ${t(lang, 'welcome_feature_monitor')}\n` +
             `• ${t(lang, 'welcome_feature_tokens')}`,
         en: `Bot helps you interact with Privacy Cash on Solana blockchain for private transactions.\n\n` +
             `${t(lang, 'welcome_features')}\n` +
-            `• ${t(lang, 'welcome_feature_deposit')}\n` +
-            `• ${t(lang, 'welcome_feature_withdraw')}\n` +
+            `• ${t(lang, 'welcome_feature_shield')}\n` +
+            `• ${t(lang, 'welcome_feature_unshield')}\n` +
+            `• ${t(lang, 'welcome_feature_private_transfer')}\n` +
             `• ${t(lang, 'welcome_feature_balance')}\n` +
             `• ${t(lang, 'welcome_feature_monitor')}\n` +
             `• ${t(lang, 'welcome_feature_tokens')}`,
         zh: `Bot 帮助您在 Solana 区块链上与 Privacy Cash 进行私密交易。\n\n` +
             `${t(lang, 'welcome_features')}\n` +
-            `• ${t(lang, 'welcome_feature_deposit')}\n` +
-            `• ${t(lang, 'welcome_feature_withdraw')}\n` +
+            `• ${t(lang, 'welcome_feature_shield')}\n` +
+            `• ${t(lang, 'welcome_feature_unshield')}\n` +
+            `• ${t(lang, 'welcome_feature_private_transfer')}\n` +
             `• ${t(lang, 'welcome_feature_balance')}\n` +
             `• ${t(lang, 'welcome_feature_monitor')}\n` +
             `• ${t(lang, 'welcome_feature_tokens')}`
@@ -1567,15 +2101,19 @@ async function handleHelp(ctx: Context): Promise<void> {
 /balance - Xem tất cả số dư
 /privatebalance - Xem số dư riêng tư
 
-*📥 Nạp tiền*
+*�️ Shield (Nạp vào ví riêng tư)*
 /deposit <số\\_lượng> [token]
 /depositsol <số\\_lượng>
 /deposittoken <token> <số\\_lượng>
 
-*📤 Rút tiền*
+*📤 Unshield (Rút từ ví riêng tư)*
 /withdraw <số\\_lượng> [token] [địa\\_chỉ]
 /withdrawsol <số\\_lượng> [địa\\_chỉ]
 /withdrawtoken <token> <số\\_lượng> [địa\\_chỉ]
+
+*🔐 Chuyển tiền riêng tư*
+/transfer - Gửi token ẩn danh đến 1 địa chỉ
+/multisend - Gửi token ẩn danh đến nhiều địa chỉ cùng lúc
 
 *🔔 Theo dõi*
 /monitor - Bật thông báo
@@ -1601,15 +2139,19 @@ async function handleHelp(ctx: Context): Promise<void> {
 /balance - View all balances
 /privatebalance - View private balance
 
-*📥 Deposit*
+*🛡️ Shield (Deposit to private)*
 /deposit <amount> [token]
 /depositsol <amount>
 /deposittoken <token> <amount>
 
-*📤 Withdraw*
+*📤 Unshield (Withdraw from private)*
 /withdraw <amount> [token] [address]
 /withdrawsol <amount> [address]
 /withdrawtoken <token> <amount> [address]
+
+*🔐 Private Transfers*
+/transfer - Send tokens anonymously to 1 address
+/multisend - Send tokens anonymously to multiple addresses at once
 
 *🔔 Monitoring*
 /monitor - Enable notifications
@@ -1635,15 +2177,19 @@ async function handleHelp(ctx: Context): Promise<void> {
 /balance - 查看所有余额
 /privatebalance - 查看私密余额
 
-*📥 存款*
+*🛡️ Shield (存入私密钱包)*
 /deposit <数量> [代币]
 /depositsol <数量>
 /deposittoken <代币> <数量>
 
-*📤 取款*
+*📤 Unshield (从私密钱包提取)*
 /withdraw <数量> [代币] [地址]
 /withdrawsol <数量> [地址]
 /withdrawtoken <代币> <数量> [地址]
+
+*🔐 私密转账*
+/transfer - 匿名发送代币到1个地址
+/multisend - 同时匿名发送代币到多个地址
 
 *🔔 监控*
 /monitor - 启用通知
@@ -1808,7 +2354,7 @@ async function handleBalance(ctx: Context, walletService: WalletService): Promis
         let message = `${t(lang, 'balance_title')}\n\n`;
         
         // SOL
-        message += `*◎ SOL*\n`;
+        message += `*${SUPPORTED_TOKENS.SOL.icon} SOL*\n`;
         message += `  ${t(lang, 'balance_public')} \`${formatSOL(balances.sol.public)}\` SOL\n`;
         message += `  ${t(lang, 'balance_private')} \`${formatSOL(balances.sol.private)}\` SOL\n\n`;
 
@@ -1818,7 +2364,7 @@ async function handleBalance(ctx: Context, walletService: WalletService): Promis
 
             const tokenBalance = balances.tokens[symbol as TokenSymbol];
             if (tokenBalance && (tokenBalance.public > 0 || tokenBalance.private > 0)) {
-                message += `*🪙 ${symbol}*\n`;
+                message += `*${tokenInfo.icon} ${symbol}*\n`;
                 message += `  ${t(lang, 'balance_public')} \`${formatToken(tokenBalance.public, symbol as TokenSymbol)}\` ${symbol}\n`;
                 message += `  ${t(lang, 'balance_private')} \`${formatToken(tokenBalance.private, symbol as TokenSymbol)}\` ${symbol}\n\n`;
             }
@@ -1869,13 +2415,13 @@ async function handlePrivateBalance(ctx: Context, walletService: WalletService):
         }
 
         let message = `${t(lang, 'private_balance_title')}\n\n`;
-        message += `*◎ SOL:* \`${formatSOL(balances.sol.private)}\` SOL\n`;
+        message += `*${SUPPORTED_TOKENS.SOL.icon} SOL:* \`${formatSOL(balances.sol.private)}\` SOL\n`;
 
-        for (const [symbol] of Object.entries(SUPPORTED_TOKENS)) {
+        for (const [symbol, tokenInfo] of Object.entries(SUPPORTED_TOKENS)) {
             if (symbol === 'SOL') continue;
             const tokenBalance = balances.tokens[symbol as TokenSymbol];
             if (tokenBalance && tokenBalance.private > 0) {
-                message += `*🪙 ${symbol}:* \`${formatToken(tokenBalance.private, symbol as TokenSymbol)}\` ${symbol}\n`;
+                message += `*${tokenInfo.icon} ${symbol}:* \`${formatToken(tokenBalance.private, symbol as TokenSymbol)}\` ${symbol}\n`;
             }
         }
 
@@ -1919,10 +2465,10 @@ async function handleDeposit(
 
     if (args.length === 0) {
         // Show interactive token selection
-        userStates.set(chatId, { action: 'deposit', step: 'select_token' });
+        userStates.set(chatId, { action: 'shield', step: 'select_token' });
         await ctx.reply(
-            `${t(lang, 'deposit_title')}\n\n${t(lang, 'deposit_select_token')}`,
-            { parse_mode: 'Markdown', ...getDepositTokenKeyboard(lang) }
+            `${t(lang, 'shield_title')}\n\n${t(lang, 'shield_select_token')}`,
+            { parse_mode: 'Markdown', ...getShieldTokenKeyboard(lang) }
         );
         return;
     }
@@ -2047,7 +2593,7 @@ async function executeDepositSOL(
     const chatId = ctx.chat?.id;
     if (!chatId) return;
 
-    const statusMsg = await ctx.reply(t(lang, 'deposit_processing', { amount, token: 'SOL' }));
+    const statusMsg = await ctx.reply(t(lang, 'shield_processing', { amount, token: 'SOL' }));
 
     try {
         const result = await walletService.depositSOL(chatId, amount);
@@ -2058,10 +2604,10 @@ async function executeDepositSOL(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'deposit_success')}\n\n` +
-                `${t(lang, 'deposit_success_amount', { amount, token: 'SOL' })}\n` +
-                `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
-                `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
+                `${t(lang, 'shield_success')}\n\n` +
+                `${t(lang, 'shield_success_amount', { amount, token: 'SOL' })}\n` +
+                `${t(lang, 'shield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'shield_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2074,7 +2620,7 @@ async function executeDepositSOL(
                     vi: `❌ *Không đủ số dư!*\n\n` +
                         `📊 *Chi tiết:*\n` +
                         `• Số dư hiện tại: \`${available.toFixed(6)} SOL\`\n` +
-                        `• Số lượng deposit: \`${amount} SOL\`\n` +
+                        `• Số lượng shield: \`${amount} SOL\`\n` +
                         `• Phí giao dịch (ước tính): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
                         `• Tổng cần: \`${required.toFixed(6)} SOL\`\n\n` +
                         `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
@@ -2082,7 +2628,7 @@ async function executeDepositSOL(
                     en: `❌ *Insufficient balance!*\n\n` +
                         `📊 *Details:*\n` +
                         `• Current balance: \`${available.toFixed(6)} SOL\`\n` +
-                        `• Deposit amount: \`${amount} SOL\`\n` +
+                        `• Shield amount: \`${amount} SOL\`\n` +
                         `• Transaction fee (estimated): \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
                         `• Total required: \`${required.toFixed(6)} SOL\`\n\n` +
                         `💰 *Need to add:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
@@ -2090,7 +2636,7 @@ async function executeDepositSOL(
                     zh: `❌ *余额不足！*\n\n` +
                         `📊 *详情:*\n` +
                         `• 当前余额: \`${available.toFixed(6)} SOL\`\n` +
-                        `• 存入金额: \`${amount} SOL\`\n` +
+                        `• Shield金额: \`${amount} SOL\`\n` +
                         `• 交易费用（估计）: \`~${estimatedFee?.toFixed(4) || '0.003'} SOL\`\n` +
                         `• 需要总额: \`${required.toFixed(6)} SOL\`\n\n` +
                         `💰 *需要充值:* \`${shortfall.toFixed(6)} SOL\`\n\n` +
@@ -2098,7 +2644,7 @@ async function executeDepositSOL(
                 };
                 errorMessage = messages[lang];
             } else {
-                errorMessage = `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`;
+                errorMessage = `${t(lang, 'shield_failed')}\n\n${t(lang, 'error')} ${result.error}`;
             }
 
             await ctx.telegram.editMessageText(
@@ -2114,7 +2660,7 @@ async function executeDepositSOL(
             chatId,
             statusMsg.message_id,
             undefined,
-            `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+            `${t(lang, 'shield_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
             { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
         );
     }
@@ -2134,7 +2680,7 @@ async function executeDepositToken(
     const chatId = ctx.chat?.id;
     if (!chatId) return;
 
-    const statusMsg = await ctx.reply(t(lang, 'deposit_processing', { amount, token }));
+    const statusMsg = await ctx.reply(t(lang, 'shield_processing', { amount, token }));
 
     try {
         const result = await walletService.depositSPL(chatId, token, amount);
@@ -2145,10 +2691,10 @@ async function executeDepositToken(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'deposit_success')}\n\n` +
-                `${t(lang, 'deposit_success_amount', { amount, token })}\n` +
-                `${t(lang, 'deposit_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
-                `${t(lang, 'deposit_success_link', { signature: result.signature || '' })}`,
+                `${t(lang, 'shield_success')}\n\n` +
+                `${t(lang, 'shield_success_amount', { amount, token })}\n` +
+                `${t(lang, 'shield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'shield_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2161,19 +2707,19 @@ async function executeDepositToken(
                     vi: `❌ *Không đủ số dư ${token}!*\n\n` +
                         `📊 *Chi tiết:*\n` +
                         `• Số dư hiện tại: \`${available.toFixed(6)} ${token}\`\n` +
-                        `• Số lượng deposit: \`${amount} ${token}\`\n\n` +
+                        `• Số lượng shield: \`${amount} ${token}\`\n\n` +
                         `💰 *Cần nạp thêm:* \`${shortfall.toFixed(6)} ${token}\`\n\n` +
                         `_Vui lòng nạp thêm ${token} vào ví public của bạn._`,
                     en: `❌ *Insufficient ${token} balance!*\n\n` +
                         `📊 *Details:*\n` +
                         `• Current balance: \`${available.toFixed(6)} ${token}\`\n` +
-                        `• Deposit amount: \`${amount} ${token}\`\n\n` +
+                        `• Shield amount: \`${amount} ${token}\`\n\n` +
                         `💰 *Need to add:* \`${shortfall.toFixed(6)} ${token}\`\n\n` +
                         `_Please add more ${token} to your public wallet._`,
                     zh: `❌ *${token} 余额不足！*\n\n` +
                         `📊 *详情:*\n` +
                         `• 当前余额: \`${available.toFixed(6)} ${token}\`\n` +
-                        `• 存入金额: \`${amount} ${token}\`\n\n` +
+                        `• Shield金额: \`${amount} ${token}\`\n\n` +
                         `💰 *需要充值:* \`${shortfall.toFixed(6)} ${token}\`\n\n` +
                         `_请向您的公共钱包添加更多 ${token}。_`,
                 };
@@ -2202,7 +2748,7 @@ async function executeDepositToken(
                 };
                 errorMessage = messages[lang];
             } else {
-                errorMessage = `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${result.error}`;
+                errorMessage = `${t(lang, 'shield_failed')}\n\n${t(lang, 'error')} ${result.error}`;
             }
 
             await ctx.telegram.editMessageText(
@@ -2218,7 +2764,7 @@ async function executeDepositToken(
             chatId,
             statusMsg.message_id,
             undefined,
-            `${t(lang, 'deposit_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+            `${t(lang, 'shield_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
             { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
         );
     }
@@ -2247,10 +2793,10 @@ async function handleWithdraw(
 
     if (args.length === 0) {
         // Show interactive token selection
-        userStates.set(chatId, { action: 'withdraw', step: 'select_token' });
+        userStates.set(chatId, { action: 'unshield', step: 'select_token' });
         await ctx.reply(
-            `${t(lang, 'withdraw_title')}\n\n${t(lang, 'withdraw_select_token')}`,
-            { parse_mode: 'Markdown', ...getWithdrawTokenKeyboard(lang) }
+            `${t(lang, 'unshield_title')}\n\n${t(lang, 'unshield_select_token')}`,
+            { parse_mode: 'Markdown', ...getUnshieldTokenKeyboard(lang) }
         );
         return;
     }
@@ -2404,7 +2950,7 @@ async function executeWithdrawSOL(
     const feeInfo = calculateWithdrawFee(amount);
 
     const statusMsg = await ctx.reply(
-        `${t(lang, 'withdraw_processing', { amount, token: 'SOL' })}\n` +
+        `${t(lang, 'unshield_processing', { amount, token: 'SOL' })}\n` +
         `📍 ${lang === 'vi' ? 'Đến' : lang === 'en' ? 'To' : '发送至'}: \`${shortenAddress(recipient)}\`\n\n` +
         `💰 *${lang === 'vi' ? 'Phí Privacy Cash' : lang === 'en' ? 'Privacy Cash Fee' : '隐私现金费用'}:*\n` +
         `• ${lang === 'vi' ? 'Phí cơ bản' : lang === 'en' ? 'Base fee' : '基础费用'}: \`${PRIVACY_CASH_FEES.withdraw.baseFeeSOL} SOL\`\n` +
@@ -2426,13 +2972,13 @@ async function executeWithdrawSOL(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'withdraw_success')}\n\n` +
-                `${t(lang, 'withdraw_success_amount', { amount })}\n` +
-                `${t(lang, 'withdraw_success_received', { amount: actualAmount.toFixed(6) })}\n` +
-                `${t(lang, 'withdraw_success_fee', { fee: fee.toFixed(6) })}\n` +
-                `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n` +
-                `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
-                `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`,
+                `${t(lang, 'unshield_success')}\n\n` +
+                `${t(lang, 'unshield_success_amount', { amount })}\n` +
+                `${t(lang, 'unshield_success_received', { amount: actualAmount.toFixed(6) })}\n` +
+                `${t(lang, 'unshield_success_fee', { fee: fee.toFixed(6) })}\n` +
+                `${t(lang, 'unshield_success_to', { address: shortenAddress(recipient) })}\n` +
+                `${t(lang, 'unshield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'unshield_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2443,13 +2989,13 @@ async function executeWithdrawSOL(
             if (insufficientMatch) {
                 const messages: Record<Language, string> = {
                     vi: `❌ *Không đủ số dư riêng tư!*\n\n` +
-                        `Số dư private không đủ để rút ${amount} SOL.\n\n` +
+                        `Số dư private không đủ để unshield ${amount} SOL.\n\n` +
                         `💡 _Hãy kiểm tra số dư private của bạn bằng lệnh /balance_`,
                     en: `❌ *Insufficient private balance!*\n\n` +
-                        `Private balance is not enough to withdraw ${amount} SOL.\n\n` +
+                        `Private balance is not enough to unshield ${amount} SOL.\n\n` +
                         `💡 _Check your private balance with /balance command_`,
                     zh: `❌ *私人余额不足！*\n\n` +
-                        `私人余额不足以提取 ${amount} SOL。\n\n` +
+                        `私人余额不足以unshield ${amount} SOL。\n\n` +
                         `💡 _使用 /balance 命令检查您的私人余额_`,
                 };
                 await ctx.telegram.editMessageText(
@@ -2464,7 +3010,7 @@ async function executeWithdrawSOL(
                     chatId,
                     statusMsg.message_id,
                     undefined,
-                    `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                    `${t(lang, 'unshield_failed')}\n\n${t(lang, 'error')} ${result.error}`,
                     { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
                 );
             }
@@ -2474,7 +3020,7 @@ async function executeWithdrawSOL(
             chatId,
             statusMsg.message_id,
             undefined,
-            `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+            `${t(lang, 'unshield_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
             { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
         );
     }
@@ -2499,7 +3045,7 @@ async function executeWithdrawToken(
     const recipient = recipientAddress || wallet?.publicKey || '';
 
     const statusMsg = await ctx.reply(
-        `${t(lang, 'withdraw_processing', { amount, token })}\n` +
+        `${t(lang, 'unshield_processing', { amount, token })}\n` +
         `📍 ${lang === 'vi' ? 'Đến' : lang === 'en' ? 'To' : '发送至'}: \`${shortenAddress(recipient)}\``,
         { parse_mode: 'Markdown' }
     );
@@ -2513,12 +3059,12 @@ async function executeWithdrawToken(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'withdraw_success')}\n\n` +
-                `${t(lang, 'withdraw_success_token', { token })}\n` +
-                `${t(lang, 'withdraw_success_amount', { amount })}\n` +
-                `${t(lang, 'withdraw_success_to', { address: shortenAddress(recipient) })}\n` +
-                `${t(lang, 'withdraw_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
-                `${t(lang, 'withdraw_success_link', { signature: result.signature || '' })}`,
+                `${t(lang, 'unshield_success')}\n\n` +
+                `${t(lang, 'unshield_success_token', { token })}\n` +
+                `${t(lang, 'unshield_success_amount', { amount })}\n` +
+                `${t(lang, 'unshield_success_to', { address: shortenAddress(recipient) })}\n` +
+                `${t(lang, 'unshield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n` +
+                `${t(lang, 'unshield_success_link', { signature: result.signature || '' })}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         } else {
@@ -2526,7 +3072,7 @@ async function executeWithdrawToken(
                 chatId,
                 statusMsg.message_id,
                 undefined,
-                `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${result.error}`,
+                `${t(lang, 'unshield_failed')}\n\n${t(lang, 'error')} ${result.error}`,
                 { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
             );
         }
@@ -2535,7 +3081,7 @@ async function executeWithdrawToken(
             chatId,
             statusMsg.message_id,
             undefined,
-            `${t(lang, 'withdraw_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
+            `${t(lang, 'unshield_failed')}\n\n${t(lang, 'error')} ${error instanceof Error ? error.message : t(lang, 'error_unknown')}`,
             { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
         );
     }
@@ -2591,8 +3137,7 @@ async function handleTokens(ctx: Context): Promise<void> {
     let message = `${t(lang, 'tokens_title')}\n\n`;
 
     for (const [symbol, info] of Object.entries(SUPPORTED_TOKENS)) {
-        const icon = symbol === 'SOL' ? '◎' : '🪙';
-        message += `${icon} *${symbol}* - ${info.name}\n`;
+        message += `${info.icon} *${symbol}* - ${info.name}\n`;
         message += `   ${t(lang, 'tokens_decimals')} ${info.decimals}\n`;
         message += `   ${t(lang, 'tokens_mint')} \`${shortenAddress(info.mintAddress, 6)}\`\n\n`;
     }
@@ -2634,3 +3179,46 @@ async function handleClearCache(ctx: Context, walletService: WalletService): Pro
     }
 }
 
+/**
+ * Private Transfer command handler - /transfer
+ */
+async function handlePrivateTransfer(ctx: Context, walletService: WalletService): Promise<void> {
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const lang = getLang(chatId);
+
+    if (!walletService.hasWallet(chatId)) {
+        await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+        return;
+    }
+
+    userStates.set(chatId, { action: 'private_transfer', step: 'select_token' });
+    await ctx.reply(
+        `${t(lang, 'private_transfer_title')}\n\n` +
+        `${t(lang, 'private_transfer_description')}\n\n` +
+        `${t(lang, 'private_transfer_select_token')}`,
+        { parse_mode: 'Markdown', ...getPrivateTransferTokenKeyboard(lang) }
+    );
+}
+
+/**
+ * Multi Private Send command handler - /multisend
+ */
+async function handleMultiPrivateSend(ctx: Context, walletService: WalletService): Promise<void> {
+    const chatId = ctx.chat?.id;
+    if (!chatId) return;
+    const lang = getLang(chatId);
+
+    if (!walletService.hasWallet(chatId)) {
+        await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+        return;
+    }
+
+    userStates.set(chatId, { action: 'multi_private_send', step: 'select_token' });
+    await ctx.reply(
+        `${t(lang, 'multi_send_title')}\n\n` +
+        `${t(lang, 'multi_send_description')}\n\n` +
+        `${t(lang, 'multi_send_select_token')}`,
+        { parse_mode: 'Markdown', ...getMultiPrivateSendTokenKeyboard(lang) }
+    );
+}

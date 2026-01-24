@@ -56,6 +56,7 @@ export const SUPPORTED_TOKENS = {
         decimals: 9,
         unitsPerToken: 1e9,
         mintAddress: 'So11111111111111111111111111111111111111112',
+        icon: '◎',  // Solana official symbol
     },
     USDC: {
         name: 'USD Coin',
@@ -63,6 +64,7 @@ export const SUPPORTED_TOKENS = {
         decimals: 6,
         unitsPerToken: 1e6,
         mintAddress: 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v',
+        icon: '💵',  // Dollar bill
     },
     USDT: {
         name: 'Tether USD',
@@ -70,6 +72,7 @@ export const SUPPORTED_TOKENS = {
         decimals: 6,
         unitsPerToken: 1e6,
         mintAddress: 'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB',
+        icon: '💲',  // Dollar sign
     },
     ZEC: {
         name: 'Zcash',
@@ -77,6 +80,7 @@ export const SUPPORTED_TOKENS = {
         decimals: 8,
         unitsPerToken: 1e8,
         mintAddress: 'A7bdiYdS5GjqGFtxf17ppRHtDKPkkRqbKtR27dxvQXaS',
+        icon: '🔒',  // Lock for privacy coin
     },
     ORE: {
         name: 'Ore',
@@ -84,6 +88,7 @@ export const SUPPORTED_TOKENS = {
         decimals: 11,
         unitsPerToken: 1e11,
         mintAddress: 'oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp',
+        icon: '⛏️',  // Mining pickaxe
     },
     STORE: {
         name: 'Store',
@@ -91,6 +96,7 @@ export const SUPPORTED_TOKENS = {
         decimals: 11,
         unitsPerToken: 1e11,
         mintAddress: 'sTorERYB6xAZ1SSbwpK3zoK2EEwbBrc7TZAzg1uCGiH',
+        icon: '🏪',  // Store/Shop
     },
 } as const;
 

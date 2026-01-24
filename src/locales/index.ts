@@ -21,15 +21,16 @@ export interface LocaleStrings {
     error_invalid_address: string;
     error_session_expired: string;
     error_unknown: string;
-    error_insufficient_balance_deposit: string;
-    error_insufficient_balance_withdraw: string;
+    error_insufficient_balance_shield: string;
+    error_insufficient_balance_unshield: string;
 
     // Main menu
     menu_title: string;
     menu_balance: string;
     menu_private_balance: string;
-    menu_deposit: string;
-    menu_withdraw: string;
+    menu_shield: string;
+    menu_unshield: string;
+    menu_private_transfer: string;
     menu_wallet_info: string;
     menu_tokens: string;
     menu_monitor_on: string;
@@ -43,8 +44,9 @@ export interface LocaleStrings {
     // Welcome
     welcome_title: string;
     welcome_features: string;
-    welcome_feature_deposit: string;
-    welcome_feature_withdraw: string;
+    welcome_feature_shield: string;
+    welcome_feature_unshield: string;
+    welcome_feature_private_transfer: string;
     welcome_feature_balance: string;
     welcome_feature_monitor: string;
     welcome_feature_tokens: string;
@@ -94,46 +96,97 @@ export interface LocaleStrings {
     tokens_decimals: string;
     tokens_mint: string;
 
-    // Deposit
-    deposit_title: string;
-    deposit_select_token: string;
-    deposit_enter_amount: string;
-    deposit_token_info: string;
-    deposit_confirm_title: string;
-    deposit_confirm_token: string;
-    deposit_confirm_amount: string;
-    deposit_processing: string;
-    deposit_success: string;
-    deposit_success_amount: string;
-    deposit_success_signature: string;
-    deposit_success_link: string;
-    deposit_failed: string;
+    // Shield (Deposit to private)
+    shield_title: string;
+    shield_select_token: string;
+    shield_enter_amount: string;
+    shield_token_info: string;
+    shield_confirm_title: string;
+    shield_confirm_token: string;
+    shield_confirm_amount: string;
+    shield_processing: string;
+    shield_success: string;
+    shield_success_amount: string;
+    shield_success_signature: string;
+    shield_success_link: string;
+    shield_failed: string;
 
-    // Withdraw
-    withdraw_title: string;
-    withdraw_select_token: string;
-    withdraw_enter_amount: string;
-    withdraw_select_destination: string;
-    withdraw_to_self: string;
-    withdraw_to_other: string;
-    withdraw_enter_address: string;
-    withdraw_confirm_title: string;
-    withdraw_confirm_token: string;
-    withdraw_confirm_amount: string;
-    withdraw_confirm_to: string;
-    withdraw_confirm_to_self: string;
-    withdraw_confirm_fee_note: string;
-    withdraw_confirm_estimated_fee: string;
-    withdraw_processing: string;
-    withdraw_success: string;
-    withdraw_success_token: string;
-    withdraw_success_amount: string;
-    withdraw_success_received: string;
-    withdraw_success_fee: string;
-    withdraw_success_to: string;
-    withdraw_success_signature: string;
-    withdraw_success_link: string;
-    withdraw_failed: string;
+    // Unshield (Withdraw from private)
+    unshield_title: string;
+    unshield_select_token: string;
+    unshield_enter_amount: string;
+    unshield_select_destination: string;
+    unshield_to_self: string;
+    unshield_to_other: string;
+    unshield_enter_address: string;
+    unshield_confirm_title: string;
+    unshield_confirm_token: string;
+    unshield_confirm_amount: string;
+    unshield_confirm_to: string;
+    unshield_confirm_to_self: string;
+    unshield_confirm_fee_note: string;
+    unshield_confirm_estimated_fee: string;
+    unshield_processing: string;
+    unshield_success: string;
+    unshield_success_token: string;
+    unshield_success_amount: string;
+    unshield_success_received: string;
+    unshield_success_fee: string;
+    unshield_success_to: string;
+    unshield_success_signature: string;
+    unshield_success_link: string;
+    unshield_failed: string;
+
+    // Private Transfer
+    private_transfer_title: string;
+    private_transfer_description: string;
+    private_transfer_select_token: string;
+    private_transfer_enter_amount: string;
+    private_transfer_enter_address: string;
+    private_transfer_confirm_title: string;
+    private_transfer_confirm_token: string;
+    private_transfer_confirm_amount: string;
+    private_transfer_confirm_to: string;
+    private_transfer_confirm_fee_breakdown: string;
+    private_transfer_confirm_shield_fee: string;
+    private_transfer_confirm_unshield_fee: string;
+    private_transfer_confirm_total_fee: string;
+    private_transfer_confirm_recipient_receives: string;
+    private_transfer_processing_shield: string;
+    private_transfer_processing_unshield: string;
+    private_transfer_success: string;
+    private_transfer_success_amount: string;
+    private_transfer_success_to: string;
+    private_transfer_success_fee: string;
+    private_transfer_success_signature: string;
+    private_transfer_success_link: string;
+    private_transfer_failed: string;
+    private_transfer_failed_shield: string;
+    private_transfer_failed_unshield: string;
+
+    // Multi Private Send
+    menu_multi_private_send: string;
+    multi_send_title: string;
+    multi_send_description: string;
+    multi_send_select_token: string;
+    multi_send_enter_recipients: string;
+    multi_send_format_example: string;
+    multi_send_confirm_title: string;
+    multi_send_confirm_token: string;
+    multi_send_confirm_total_amount: string;
+    multi_send_confirm_recipients_count: string;
+    multi_send_confirm_recipients_list: string;
+    multi_send_confirm_fee_note: string;
+    multi_send_processing: string;
+    multi_send_processing_recipient: string;
+    multi_send_success: string;
+    multi_send_success_summary: string;
+    multi_send_partial_success: string;
+    multi_send_failed: string;
+    multi_send_invalid_format: string;
+    multi_send_invalid_address: string;
+    multi_send_invalid_amount: string;
+    multi_send_no_recipients: string;
 
     // Monitoring
     monitor_enabled_title: string;
@@ -145,8 +198,9 @@ export interface LocaleStrings {
     help_title: string;
     help_wallet_management: string;
     help_balance: string;
-    help_deposit: string;
-    help_withdraw: string;
+    help_shield: string;
+    help_unshield: string;
+    help_private_transfer: string;
     help_monitoring: string;
     help_utility: string;
     help_tip: string;
@@ -211,15 +265,16 @@ const vi: LocaleStrings = {
     error_invalid_address: '❌ Địa chỉ ví không hợp lệ. Vui lòng nhập địa chỉ Solana hợp lệ.',
     error_session_expired: '❌ Phiên đã hết hạn. Vui lòng thử lại.',
     error_unknown: 'Không xác định',
-    error_insufficient_balance_deposit: '❌ *Không đủ số dư để nạp!*\n\n💰 Số dư hiện tại: {balance} {token}\n📥 Số lượng cần nạp: {amount} {token}\n\nVui lòng nạp thêm {token} vào ví của bạn.',
-    error_insufficient_balance_withdraw: '❌ *Không đủ số dư riêng tư để rút!*\n\n🔒 Số dư riêng tư: {balance} {token}\n📤 Số lượng cần rút: {amount} {token}\n\nVui lòng nạp thêm vào Privacy Cash trước.',
+    error_insufficient_balance_shield: '❌ *Không đủ số dư để shield!*\n\n💰 Số dư hiện tại: {balance} {token}\n📥 Số lượng cần shield: {amount} {token}\n\nVui lòng nạp thêm {token} vào ví của bạn.',
+    error_insufficient_balance_unshield: '❌ *Không đủ số dư riêng tư để unshield!*\n\n🔒 Số dư riêng tư: {balance} {token}\n📤 Số lượng cần unshield: {amount} {token}\n\nVui lòng shield thêm vào Privacy Cash trước.',
 
     // Main menu
     menu_title: '🏠 *Menu chính*\n\nChọn một tùy chọn bên dưới:',
     menu_balance: '💰 Số dư',
     menu_private_balance: '🔒 Số dư riêng tư',
-    menu_deposit: '📥 Nạp tiền',
-    menu_withdraw: '📤 Rút tiền',
+    menu_shield: '🛡️ Shield',
+    menu_unshield: '📤 Unshield',
+    menu_private_transfer: '🔐 Chuyển riêng tư',
     menu_wallet_info: '💳 Thông tin ví',
     menu_tokens: '🪙 Danh sách token',
     menu_monitor_on: '🔔 Bật theo dõi',
@@ -233,8 +288,9 @@ const vi: LocaleStrings = {
     // Welcome
     welcome_title: '🔒 *Chào mừng đến với Privacy Cash Bot!*',
     welcome_features: '*✨ Tính năng:*',
-    welcome_feature_deposit: '💰 Nạp SOL/token vào Privacy Cash',
-    welcome_feature_withdraw: '💸 Rút SOL/token một cách riêng tư',
+    welcome_feature_shield: '🛡️ Shield SOL/token vào ví riêng tư',
+    welcome_feature_unshield: '📤 Unshield SOL/token về ví công khai',
+    welcome_feature_private_transfer: '🔐 Chuyển tiền riêng tư đến bất kỳ địa chỉ nào',
     welcome_feature_balance: '📊 Kiểm tra số dư công khai & riêng tư',
     welcome_feature_monitor: '🔔 Theo dõi biến động số dư',
     welcome_feature_tokens: '🪙 Hỗ trợ nhiều token: SOL, USDC, USDT, ZEC, ORE, STORE',
@@ -284,46 +340,97 @@ const vi: LocaleStrings = {
     tokens_decimals: 'Decimals:',
     tokens_mint: 'Mint:',
 
-    // Deposit
-    deposit_title: '📥 *Nạp tiền vào Privacy Cash*',
-    deposit_select_token: 'Chọn token bạn muốn nạp:',
-    deposit_enter_amount: '💬 Nhập số lượng {token} bạn muốn nạp:',
-    deposit_token_info: 'Token: {name}\nDecimals: {decimals}',
-    deposit_confirm_title: '📥 *Xác nhận nạp tiền*',
-    deposit_confirm_token: 'Token: *{token}*',
-    deposit_confirm_amount: 'Số lượng: *{amount}*',
-    deposit_processing: '🔄 Đang nạp {amount} {token}...',
-    deposit_success: '✅ *Nạp tiền thành công!*',
-    deposit_success_amount: '💰 Số lượng: `{amount}` {token}',
-    deposit_success_signature: '🔗 Signature: `{signature}`',
-    deposit_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
-    deposit_failed: '❌ *Nạp tiền thất bại*',
+    // Shield (Deposit to private)
+    shield_title: '🛡️ *Shield Token*',
+    shield_select_token: 'Chọn token bạn muốn shield (chuyển vào ví riêng tư):',
+    shield_enter_amount: '💬 Nhập số lượng {token} bạn muốn shield:',
+    shield_token_info: 'Token: {name}\nDecimals: {decimals}',
+    shield_confirm_title: '🛡️ *Xác nhận Shield*',
+    shield_confirm_token: 'Token: *{token}*',
+    shield_confirm_amount: 'Số lượng: *{amount}*',
+    shield_processing: '🔄 Đang shield {amount} {token}...',
+    shield_success: '✅ *Shield thành công!*',
+    shield_success_amount: '🛡️ Số lượng: `{amount}` {token}',
+    shield_success_signature: '🔗 Signature: `{signature}`',
+    shield_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    shield_failed: '❌ *Shield thất bại*',
 
-    // Withdraw
-    withdraw_title: '📤 *Rút tiền từ Privacy Cash*',
-    withdraw_select_token: 'Chọn token bạn muốn rút:',
-    withdraw_enter_amount: '💬 Nhập số lượng {token} bạn muốn rút:',
-    withdraw_select_destination: 'Chọn địa chỉ nhận:',
-    withdraw_to_self: '🏠 Rút về ví mình',
-    withdraw_to_other: '📍 Rút đến địa chỉ khác',
-    withdraw_enter_address: '💬 Nhập địa chỉ ví nhận (Solana address):',
-    withdraw_confirm_title: '📤 *Xác nhận rút tiền*',
-    withdraw_confirm_token: 'Token: *{token}*',
-    withdraw_confirm_amount: 'Số lượng: *{amount}*',
-    withdraw_confirm_to: 'Đến: `{address}`',
-    withdraw_confirm_to_self: '(ví của bạn)',
-    withdraw_confirm_fee_note: '⚠️ Phí sẽ được trừ từ số tiền rút.',
-    withdraw_confirm_estimated_fee: '💸 Phí ước tính: *~0.1% - 0.5%* của số tiền rút',
-    withdraw_processing: '🔄 Đang rút {amount} {token}...',
-    withdraw_success: '✅ *Rút tiền thành công!*',
-    withdraw_success_token: '💰 Token: {token}',
-    withdraw_success_amount: '📤 Số lượng: {amount}',
-    withdraw_success_received: '💵 Thực nhận: {amount} SOL',
-    withdraw_success_fee: '💸 Phí: {fee} SOL',
-    withdraw_success_to: '📍 Đến: `{address}`',
-    withdraw_success_signature: '🔗 Signature: `{signature}`',
-    withdraw_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
-    withdraw_failed: '❌ *Rút tiền thất bại*',
+    // Unshield (Withdraw from private)
+    unshield_title: '📤 *Unshield Token*',
+    unshield_select_token: 'Chọn token bạn muốn unshield (rút về ví công khai):',
+    unshield_enter_amount: '💬 Nhập số lượng {token} bạn muốn unshield:',
+    unshield_select_destination: 'Chọn địa chỉ nhận:',
+    unshield_to_self: '🏠 Unshield về ví mình',
+    unshield_to_other: '📍 Unshield đến địa chỉ khác',
+    unshield_enter_address: '💬 Nhập địa chỉ ví nhận (Solana address):',
+    unshield_confirm_title: '📤 *Xác nhận Unshield*',
+    unshield_confirm_token: 'Token: *{token}*',
+    unshield_confirm_amount: 'Số lượng: *{amount}*',
+    unshield_confirm_to: 'Đến: `{address}`',
+    unshield_confirm_to_self: '(ví của bạn)',
+    unshield_confirm_fee_note: '⚠️ Phí sẽ được trừ từ số tiền unshield.',
+    unshield_confirm_estimated_fee: '💸 Phí ước tính: *~0.1% - 0.5%* của số tiền unshield',
+    unshield_processing: '🔄 Đang unshield {amount} {token}...',
+    unshield_success: '✅ *Unshield thành công!*',
+    unshield_success_token: '💰 Token: {token}',
+    unshield_success_amount: '📤 Số lượng: {amount}',
+    unshield_success_received: '💵 Thực nhận: {amount} SOL',
+    unshield_success_fee: '💸 Phí: {fee} SOL',
+    unshield_success_to: '📍 Đến: `{address}`',
+    unshield_success_signature: '🔗 Signature: `{signature}`',
+    unshield_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    unshield_failed: '❌ *Unshield thất bại*',
+
+    // Private Transfer
+    private_transfer_title: '🔐 *Chuyển Tiền Riêng Tư*',
+    private_transfer_description: 'Chuyển tiền ẩn danh: Shield → Unshield đến địa chỉ nhận',
+    private_transfer_select_token: 'Chọn token bạn muốn chuyển riêng tư:',
+    private_transfer_enter_amount: '💬 Nhập số lượng {token} bạn muốn chuyển:',
+    private_transfer_enter_address: '💬 Nhập địa chỉ ví nhận (Solana address):',
+    private_transfer_confirm_title: '🔐 *Xác nhận Chuyển Tiền Riêng Tư*',
+    private_transfer_confirm_token: 'Token: *{token}*',
+    private_transfer_confirm_amount: 'Số lượng gửi: *{amount}*',
+    private_transfer_confirm_to: 'Đến: `{address}`',
+    private_transfer_confirm_fee_breakdown: '💸 *Chi tiết phí:*',
+    private_transfer_confirm_shield_fee: '• Phí Shield: ~{fee} SOL (phí giao dịch)',
+    private_transfer_confirm_unshield_fee: '• Phí Unshield: ~{fee} SOL ({percent}%)',
+    private_transfer_confirm_total_fee: '• *Tổng phí ước tính:* ~{fee} SOL',
+    private_transfer_confirm_recipient_receives: '💵 *Người nhận sẽ nhận:* ~{amount} {token}',
+    private_transfer_processing_shield: '🔄 Bước 1/2: Đang shield {amount} {token}...',
+    private_transfer_processing_unshield: '🔄 Bước 2/2: Đang unshield đến người nhận...',
+    private_transfer_success: '✅ *Chuyển tiền riêng tư thành công!*',
+    private_transfer_success_amount: '💰 Số lượng gửi: `{amount}` {token}',
+    private_transfer_success_to: '📍 Đến: `{address}`',
+    private_transfer_success_fee: '💸 Tổng phí: {fee} SOL',
+    private_transfer_success_signature: '🔗 Signature: `{signature}`',
+    private_transfer_success_link: '🔍 [Xem giao dịch trên Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    private_transfer_failed: '❌ *Chuyển tiền riêng tư thất bại*',
+    private_transfer_failed_shield: '❌ *Lỗi ở bước Shield:* {error}',
+    private_transfer_failed_unshield: '❌ *Lỗi ở bước Unshield:* {error}\n\n⚠️ Token đã được shield. Bạn có thể unshield thủ công.',
+
+    // Multi Private Send
+    menu_multi_private_send: '📤 Gửi nhiều ví',
+    multi_send_title: '📤 *Chuyển Tiền Riêng Tư Đến Nhiều Ví*',
+    multi_send_description: 'Gửi token đến nhiều địa chỉ cùng lúc một cách ẩn danh',
+    multi_send_select_token: 'Chọn token bạn muốn gửi:',
+    multi_send_enter_recipients: '💬 Nhập danh sách người nhận theo format sau:\n\n`Địa chỉ ví, Số lượng`\n\nMỗi dòng một người nhận.',
+    multi_send_format_example: '*Ví dụ:*\n```\nAddress1, 100\nAddress2, 200\nAddress3, 300\n```',
+    multi_send_confirm_title: '📤 *Xác nhận Gửi Nhiều Ví*',
+    multi_send_confirm_token: 'Token: *{token}*',
+    multi_send_confirm_total_amount: 'Tổng số lượng: *{amount} {token}*',
+    multi_send_confirm_recipients_count: 'Số người nhận: *{count}*',
+    multi_send_confirm_recipients_list: '📋 *Danh sách người nhận:*',
+    multi_send_confirm_fee_note: '⚠️ Phí sẽ được tính cho mỗi giao dịch',
+    multi_send_processing: '🔄 Đang xử lý {current}/{total} giao dịch...',
+    multi_send_processing_recipient: '🔄 Đang gửi {amount} {token} đến `{address}`...',
+    multi_send_success: '✅ *Gửi nhiều ví thành công!*',
+    multi_send_success_summary: '📊 Đã gửi thành công {success}/{total} giao dịch',
+    multi_send_partial_success: '⚠️ *Hoàn thành một phần*\n\nThành công: {success}/{total}',
+    multi_send_failed: '❌ *Gửi nhiều ví thất bại*',
+    multi_send_invalid_format: '❌ Format không hợp lệ ở dòng {line}: `{content}`',
+    multi_send_invalid_address: '❌ Địa chỉ không hợp lệ ở dòng {line}: `{address}`',
+    multi_send_invalid_amount: '❌ Số lượng không hợp lệ ở dòng {line}: `{amount}`',
+    multi_send_no_recipients: '❌ Không tìm thấy người nhận nào. Vui lòng nhập theo format đúng.',
 
     // Monitoring
     monitor_enabled_title: '✅ *Đã bật theo dõi số dư*',
@@ -335,8 +442,9 @@ const vi: LocaleStrings = {
     help_title: '📚 *Hướng dẫn sử dụng Privacy Cash Bot*',
     help_wallet_management: '*🔗 Quản lý ví*',
     help_balance: '*💰 Số dư*',
-    help_deposit: '*📥 Nạp tiền*',
-    help_withdraw: '*📤 Rút tiền*',
+    help_shield: '*🛡️ Shield* - Chuyển token vào ví riêng tư',
+    help_unshield: '*📤 Unshield* - Rút token từ ví riêng tư',
+    help_private_transfer: '*🔐 Chuyển riêng tư* - Gửi token ẩn danh',
     help_monitoring: '*🔔 Theo dõi*',
     help_utility: '*⚙️ Tiện ích*',
     help_tip: '💡 *Mẹo:* Sử dụng /menu hoặc /start để mở giao diện nút bấm dễ sử dụng hơn!',
@@ -401,15 +509,16 @@ const en: LocaleStrings = {
     error_invalid_address: '❌ Invalid wallet address. Please enter a valid Solana address.',
     error_session_expired: '❌ Session expired. Please try again.',
     error_unknown: 'Unknown',
-    error_insufficient_balance_deposit: '❌ *Insufficient balance to deposit!*\n\n💰 Current balance: {balance} {token}\n📥 Amount to deposit: {amount} {token}\n\nPlease add more {token} to your wallet.',
-    error_insufficient_balance_withdraw: '❌ *Insufficient private balance to withdraw!*\n\n🔒 Private balance: {balance} {token}\n📤 Amount to withdraw: {amount} {token}\n\nPlease deposit more to Privacy Cash first.',
+    error_insufficient_balance_shield: '❌ *Insufficient balance to shield!*\n\n💰 Current balance: {balance} {token}\n📥 Amount to shield: {amount} {token}\n\nPlease add more {token} to your wallet.',
+    error_insufficient_balance_unshield: '❌ *Insufficient private balance to unshield!*\n\n🔒 Private balance: {balance} {token}\n📤 Amount to unshield: {amount} {token}\n\nPlease shield more to Privacy Cash first.',
 
     // Main menu
     menu_title: '🏠 *Main Menu*\n\nSelect an option below:',
     menu_balance: '💰 Balance',
     menu_private_balance: '🔒 Private Balance',
-    menu_deposit: '📥 Deposit',
-    menu_withdraw: '📤 Withdraw',
+    menu_shield: '🛡️ Shield',
+    menu_unshield: '📤 Unshield',
+    menu_private_transfer: '🔐 Private Transfer',
     menu_wallet_info: '💳 Wallet Info',
     menu_tokens: '🪙 Token List',
     menu_monitor_on: '🔔 Enable Alerts',
@@ -423,8 +532,9 @@ const en: LocaleStrings = {
     // Welcome
     welcome_title: '🔒 *Welcome to Privacy Cash Bot!*',
     welcome_features: '*✨ Features:*',
-    welcome_feature_deposit: '💰 Deposit SOL/tokens to Privacy Cash',
-    welcome_feature_withdraw: '💸 Withdraw SOL/tokens privately',
+    welcome_feature_shield: '🛡️ Shield SOL/tokens to private wallet',
+    welcome_feature_unshield: '📤 Unshield SOL/tokens to public wallet',
+    welcome_feature_private_transfer: '🔐 Private transfer to any address',
     welcome_feature_balance: '📊 Check public & private balances',
     welcome_feature_monitor: '🔔 Monitor balance changes',
     welcome_feature_tokens: '🪙 Support multiple tokens: SOL, USDC, USDT, ZEC, ORE, STORE',
@@ -474,46 +584,97 @@ const en: LocaleStrings = {
     tokens_decimals: 'Decimals:',
     tokens_mint: 'Mint:',
 
-    // Deposit
-    deposit_title: '📥 *Deposit to Privacy Cash*',
-    deposit_select_token: 'Select a token to deposit:',
-    deposit_enter_amount: '💬 Enter the amount of {token} to deposit:',
-    deposit_token_info: 'Token: {name}\nDecimals: {decimals}',
-    deposit_confirm_title: '📥 *Confirm Deposit*',
-    deposit_confirm_token: 'Token: *{token}*',
-    deposit_confirm_amount: 'Amount: *{amount}*',
-    deposit_processing: '🔄 Depositing {amount} {token}...',
-    deposit_success: '✅ *Deposit Successful!*',
-    deposit_success_amount: '💰 Amount: `{amount}` {token}',
-    deposit_success_signature: '🔗 Signature: `{signature}`',
-    deposit_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
-    deposit_failed: '❌ *Deposit Failed*',
+    // Shield (Deposit to private)
+    shield_title: '🛡️ *Shield Token*',
+    shield_select_token: 'Select a token to shield (transfer to private wallet):',
+    shield_enter_amount: '💬 Enter the amount of {token} to shield:',
+    shield_token_info: 'Token: {name}\nDecimals: {decimals}',
+    shield_confirm_title: '🛡️ *Confirm Shield*',
+    shield_confirm_token: 'Token: *{token}*',
+    shield_confirm_amount: 'Amount: *{amount}*',
+    shield_processing: '🔄 Shielding {amount} {token}...',
+    shield_success: '✅ *Shield Successful!*',
+    shield_success_amount: '🛡️ Amount: `{amount}` {token}',
+    shield_success_signature: '🔗 Signature: `{signature}`',
+    shield_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    shield_failed: '❌ *Shield Failed*',
 
-    // Withdraw
-    withdraw_title: '📤 *Withdraw from Privacy Cash*',
-    withdraw_select_token: 'Select a token to withdraw:',
-    withdraw_enter_amount: '💬 Enter the amount of {token} to withdraw:',
-    withdraw_select_destination: 'Select destination:',
-    withdraw_to_self: '🏠 Withdraw to my wallet',
-    withdraw_to_other: '📍 Withdraw to another address',
-    withdraw_enter_address: '💬 Enter the recipient wallet address (Solana address):',
-    withdraw_confirm_title: '📤 *Confirm Withdrawal*',
-    withdraw_confirm_token: 'Token: *{token}*',
-    withdraw_confirm_amount: 'Amount: *{amount}*',
-    withdraw_confirm_to: 'To: `{address}`',
-    withdraw_confirm_to_self: '(your wallet)',
-    withdraw_confirm_fee_note: '⚠️ Fees will be deducted from the withdrawal amount.',
-    withdraw_confirm_estimated_fee: '💸 Estimated fee: *~0.1% - 0.5%* of withdrawal amount',
-    withdraw_processing: '🔄 Withdrawing {amount} {token}...',
-    withdraw_success: '✅ *Withdrawal Successful!*',
-    withdraw_success_token: '💰 Token: {token}',
-    withdraw_success_amount: '📤 Amount: {amount}',
-    withdraw_success_received: '💵 Received: {amount} SOL',
-    withdraw_success_fee: '💸 Fee: {fee} SOL',
-    withdraw_success_to: '📍 To: `{address}`',
-    withdraw_success_signature: '🔗 Signature: `{signature}`',
-    withdraw_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
-    withdraw_failed: '❌ *Withdrawal Failed*',
+    // Unshield (Withdraw from private)
+    unshield_title: '📤 *Unshield Token*',
+    unshield_select_token: 'Select a token to unshield (withdraw to public wallet):',
+    unshield_enter_amount: '💬 Enter the amount of {token} to unshield:',
+    unshield_select_destination: 'Select destination:',
+    unshield_to_self: '🏠 Unshield to my wallet',
+    unshield_to_other: '📍 Unshield to another address',
+    unshield_enter_address: '💬 Enter the recipient wallet address (Solana address):',
+    unshield_confirm_title: '📤 *Confirm Unshield*',
+    unshield_confirm_token: 'Token: *{token}*',
+    unshield_confirm_amount: 'Amount: *{amount}*',
+    unshield_confirm_to: 'To: `{address}`',
+    unshield_confirm_to_self: '(your wallet)',
+    unshield_confirm_fee_note: '⚠️ Fees will be deducted from the unshield amount.',
+    unshield_confirm_estimated_fee: '💸 Estimated fee: *~0.1% - 0.5%* of unshield amount',
+    unshield_processing: '🔄 Unshielding {amount} {token}...',
+    unshield_success: '✅ *Unshield Successful!*',
+    unshield_success_token: '💰 Token: {token}',
+    unshield_success_amount: '📤 Amount: {amount}',
+    unshield_success_received: '💵 Received: {amount} SOL',
+    unshield_success_fee: '💸 Fee: {fee} SOL',
+    unshield_success_to: '📍 To: `{address}`',
+    unshield_success_signature: '🔗 Signature: `{signature}`',
+    unshield_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    unshield_failed: '❌ *Unshield Failed*',
+
+    // Private Transfer
+    private_transfer_title: '🔐 *Private Transfer*',
+    private_transfer_description: 'Anonymous transfer: Shield → Unshield to recipient',
+    private_transfer_select_token: 'Select a token to transfer privately:',
+    private_transfer_enter_amount: '💬 Enter the amount of {token} to transfer:',
+    private_transfer_enter_address: '💬 Enter the recipient wallet address (Solana address):',
+    private_transfer_confirm_title: '🔐 *Confirm Private Transfer*',
+    private_transfer_confirm_token: 'Token: *{token}*',
+    private_transfer_confirm_amount: 'Amount to send: *{amount}*',
+    private_transfer_confirm_to: 'To: `{address}`',
+    private_transfer_confirm_fee_breakdown: '💸 *Fee breakdown:*',
+    private_transfer_confirm_shield_fee: '• Shield fee: ~{fee} SOL (transaction fee)',
+    private_transfer_confirm_unshield_fee: '• Unshield fee: ~{fee} SOL ({percent}%)',
+    private_transfer_confirm_total_fee: '• *Total estimated fee:* ~{fee} SOL',
+    private_transfer_confirm_recipient_receives: '💵 *Recipient will receive:* ~{amount} {token}',
+    private_transfer_processing_shield: '🔄 Step 1/2: Shielding {amount} {token}...',
+    private_transfer_processing_unshield: '🔄 Step 2/2: Unshielding to recipient...',
+    private_transfer_success: '✅ *Private Transfer Successful!*',
+    private_transfer_success_amount: '💰 Amount sent: `{amount}` {token}',
+    private_transfer_success_to: '📍 To: `{address}`',
+    private_transfer_success_fee: '💸 Total fee: {fee} SOL',
+    private_transfer_success_signature: '🔗 Signature: `{signature}`',
+    private_transfer_success_link: '🔍 [View transaction on Explorer](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    private_transfer_failed: '❌ *Private Transfer Failed*',
+    private_transfer_failed_shield: '❌ *Error at Shield step:* {error}',
+    private_transfer_failed_unshield: '❌ *Error at Unshield step:* {error}\n\n⚠️ Tokens have been shielded. You can unshield manually.',
+
+    // Multi Private Send
+    menu_multi_private_send: '📤 Multi Send',
+    multi_send_title: '📤 *Multi Private Send*',
+    multi_send_description: 'Send tokens to multiple addresses anonymously at once',
+    multi_send_select_token: 'Select a token to send:',
+    multi_send_enter_recipients: '💬 Enter the list of recipients in the following format:\n\n`Wallet address, Amount`\n\nOne recipient per line.',
+    multi_send_format_example: '*Example:*\n```\nAddress1, 100\nAddress2, 200\nAddress3, 300\n```',
+    multi_send_confirm_title: '📤 *Confirm Multi Send*',
+    multi_send_confirm_token: 'Token: *{token}*',
+    multi_send_confirm_total_amount: 'Total amount: *{amount} {token}*',
+    multi_send_confirm_recipients_count: 'Recipients: *{count}*',
+    multi_send_confirm_recipients_list: '📋 *Recipients list:*',
+    multi_send_confirm_fee_note: '⚠️ Fees will be charged for each transaction',
+    multi_send_processing: '🔄 Processing {current}/{total} transactions...',
+    multi_send_processing_recipient: '🔄 Sending {amount} {token} to `{address}`...',
+    multi_send_success: '✅ *Multi Send Successful!*',
+    multi_send_success_summary: '📊 Successfully sent {success}/{total} transactions',
+    multi_send_partial_success: '⚠️ *Partially completed*\n\nSuccess: {success}/{total}',
+    multi_send_failed: '❌ *Multi Send Failed*',
+    multi_send_invalid_format: '❌ Invalid format at line {line}: `{content}`',
+    multi_send_invalid_address: '❌ Invalid address at line {line}: `{address}`',
+    multi_send_invalid_amount: '❌ Invalid amount at line {line}: `{amount}`',
+    multi_send_no_recipients: '❌ No recipients found. Please enter in the correct format.',
 
     // Monitoring
     monitor_enabled_title: '✅ *Balance Monitoring Enabled*',
@@ -525,8 +686,9 @@ const en: LocaleStrings = {
     help_title: '📚 *Privacy Cash Bot Guide*',
     help_wallet_management: '*🔗 Wallet Management*',
     help_balance: '*💰 Balance*',
-    help_deposit: '*📥 Deposit*',
-    help_withdraw: '*📤 Withdraw*',
+    help_shield: '*🛡️ Shield* - Transfer tokens to private wallet',
+    help_unshield: '*📤 Unshield* - Withdraw tokens from private wallet',
+    help_private_transfer: '*🔐 Private Transfer* - Send tokens anonymously',
     help_monitoring: '*🔔 Monitoring*',
     help_utility: '*⚙️ Utility*',
     help_tip: '💡 *Tip:* Use /menu or /start to open the button interface for easier navigation!',
@@ -591,15 +753,16 @@ const zh: LocaleStrings = {
     error_invalid_address: '❌ 钱包地址无效。请输入有效的 Solana 地址。',
     error_session_expired: '❌ 会话已过期。请重试。',
     error_unknown: '未知',
-    error_insufficient_balance_deposit: '❌ *余额不足，无法存款！*\n\n💰 当前余额: {balance} {token}\n📥 存款金额: {amount} {token}\n\n请向您的钱包添加更多 {token}。',
-    error_insufficient_balance_withdraw: '❌ *私密余额不足，无法取款！*\n\n🔒 私密余额: {balance} {token}\n📤 取款金额: {amount} {token}\n\n请先向 Privacy Cash 存入更多。',
+    error_insufficient_balance_shield: '❌ *余额不足，无法shield！*\n\n💰 当前余额: {balance} {token}\n📥 Shield金额: {amount} {token}\n\n请向您的钱包添加更多 {token}。',
+    error_insufficient_balance_unshield: '❌ *私密余额不足，无法unshield！*\n\n🔒 私密余额: {balance} {token}\n📤 Unshield金额: {amount} {token}\n\n请先向 Privacy Cash shield更多。',
 
     // Main menu
     menu_title: '🏠 *主菜单*\n\n请选择以下选项:',
     menu_balance: '💰 余额',
     menu_private_balance: '🔒 私密余额',
-    menu_deposit: '📥 存款',
-    menu_withdraw: '📤 取款',
+    menu_shield: '🛡️ Shield',
+    menu_unshield: '📤 Unshield',
+    menu_private_transfer: '🔐 私密转账',
     menu_wallet_info: '💳 钱包信息',
     menu_tokens: '🪙 代币列表',
     menu_monitor_on: '🔔 开启提醒',
@@ -613,8 +776,9 @@ const zh: LocaleStrings = {
     // Welcome
     welcome_title: '🔒 *欢迎使用 Privacy Cash Bot！*',
     welcome_features: '*✨ 功能:*',
-    welcome_feature_deposit: '💰 将 SOL/代币存入 Privacy Cash',
-    welcome_feature_withdraw: '💸 私密提取 SOL/代币',
+    welcome_feature_shield: '🛡️ Shield SOL/代币到私密钱包',
+    welcome_feature_unshield: '📤 Unshield SOL/代币到公开钱包',
+    welcome_feature_private_transfer: '🔐 私密转账到任何地址',
     welcome_feature_balance: '📊 查看公开和私密余额',
     welcome_feature_monitor: '🔔 监控余额变化',
     welcome_feature_tokens: '🪙 支持多种代币: SOL, USDC, USDT, ZEC, ORE, STORE',
@@ -664,46 +828,97 @@ const zh: LocaleStrings = {
     tokens_decimals: '小数位:',
     tokens_mint: 'Mint:',
 
-    // Deposit
-    deposit_title: '📥 *存款到 Privacy Cash*',
-    deposit_select_token: '选择要存入的代币:',
-    deposit_enter_amount: '💬 请输入要存入的 {token} 数量:',
-    deposit_token_info: '代币: {name}\n小数位: {decimals}',
-    deposit_confirm_title: '📥 *确认存款*',
-    deposit_confirm_token: '代币: *{token}*',
-    deposit_confirm_amount: '数量: *{amount}*',
-    deposit_processing: '🔄 正在存入 {amount} {token}...',
-    deposit_success: '✅ *存款成功！*',
-    deposit_success_amount: '💰 数量: `{amount}` {token}',
-    deposit_success_signature: '🔗 签名: `{signature}`',
-    deposit_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
-    deposit_failed: '❌ *存款失败*',
+    // Shield (Deposit to private)
+    shield_title: '🛡️ *Shield 代币*',
+    shield_select_token: '选择要 shield 的代币 (转入私密钱包):',
+    shield_enter_amount: '💬 请输入要 shield 的 {token} 数量:',
+    shield_token_info: '代币: {name}\n小数位: {decimals}',
+    shield_confirm_title: '🛡️ *确认 Shield*',
+    shield_confirm_token: '代币: *{token}*',
+    shield_confirm_amount: '数量: *{amount}*',
+    shield_processing: '🔄 正在 shield {amount} {token}...',
+    shield_success: '✅ *Shield 成功！*',
+    shield_success_amount: '🛡️ 数量: `{amount}` {token}',
+    shield_success_signature: '🔗 签名: `{signature}`',
+    shield_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    shield_failed: '❌ *Shield 失败*',
 
-    // Withdraw
-    withdraw_title: '📤 *从 Privacy Cash 取款*',
-    withdraw_select_token: '选择要提取的代币:',
-    withdraw_enter_amount: '💬 请输入要提取的 {token} 数量:',
-    withdraw_select_destination: '选择接收地址:',
-    withdraw_to_self: '🏠 提取到我的钱包',
-    withdraw_to_other: '📍 提取到其他地址',
-    withdraw_enter_address: '💬 请输入接收钱包地址 (Solana 地址):',
-    withdraw_confirm_title: '📤 *确认取款*',
-    withdraw_confirm_token: '代币: *{token}*',
-    withdraw_confirm_amount: '数量: *{amount}*',
-    withdraw_confirm_to: '发送至: `{address}`',
-    withdraw_confirm_to_self: '(您的钱包)',
-    withdraw_confirm_fee_note: '⚠️ 手续费将从提款金额中扣除。',
-    withdraw_confirm_estimated_fee: '💸 预估手续费: 提款金额的 *~0.1% - 0.5%*',
-    withdraw_processing: '🔄 正在提取 {amount} {token}...',
-    withdraw_success: '✅ *取款成功！*',
-    withdraw_success_token: '💰 代币: {token}',
-    withdraw_success_amount: '📤 数量: {amount}',
-    withdraw_success_received: '💵 实际收到: {amount} SOL',
-    withdraw_success_fee: '💸 手续费: {fee} SOL',
-    withdraw_success_to: '📍 发送至: `{address}`',
-    withdraw_success_signature: '🔗 签名: `{signature}`',
-    withdraw_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
-    withdraw_failed: '❌ *取款失败*',
+    // Unshield (Withdraw from private)
+    unshield_title: '📤 *Unshield 代币*',
+    unshield_select_token: '选择要 unshield 的代币 (提取到公开钱包):',
+    unshield_enter_amount: '💬 请输入要 unshield 的 {token} 数量:',
+    unshield_select_destination: '选择接收地址:',
+    unshield_to_self: '🏠 Unshield 到我的钱包',
+    unshield_to_other: '📍 Unshield 到其他地址',
+    unshield_enter_address: '💬 请输入接收钱包地址 (Solana 地址):',
+    unshield_confirm_title: '📤 *确认 Unshield*',
+    unshield_confirm_token: '代币: *{token}*',
+    unshield_confirm_amount: '数量: *{amount}*',
+    unshield_confirm_to: '发送至: `{address}`',
+    unshield_confirm_to_self: '(您的钱包)',
+    unshield_confirm_fee_note: '⚠️ 手续费将从 unshield 金额中扣除。',
+    unshield_confirm_estimated_fee: '💸 预估手续费: unshield 金额的 *~0.1% - 0.5%*',
+    unshield_processing: '🔄 正在 unshield {amount} {token}...',
+    unshield_success: '✅ *Unshield 成功！*',
+    unshield_success_token: '💰 代币: {token}',
+    unshield_success_amount: '📤 数量: {amount}',
+    unshield_success_received: '💵 实际收到: {amount} SOL',
+    unshield_success_fee: '💸 手续费: {fee} SOL',
+    unshield_success_to: '📍 发送至: `{address}`',
+    unshield_success_signature: '🔗 签名: `{signature}`',
+    unshield_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    unshield_failed: '❌ *Unshield 失败*',
+
+    // Private Transfer
+    private_transfer_title: '🔐 *私密转账*',
+    private_transfer_description: '匿名转账: Shield → Unshield 到收款人',
+    private_transfer_select_token: '选择要私密转账的代币:',
+    private_transfer_enter_amount: '💬 请输入要转账的 {token} 数量:',
+    private_transfer_enter_address: '💬 请输入接收钱包地址 (Solana 地址):',
+    private_transfer_confirm_title: '🔐 *确认私密转账*',
+    private_transfer_confirm_token: '代币: *{token}*',
+    private_transfer_confirm_amount: '发送数量: *{amount}*',
+    private_transfer_confirm_to: '发送至: `{address}`',
+    private_transfer_confirm_fee_breakdown: '💸 *费用明细:*',
+    private_transfer_confirm_shield_fee: '• Shield 费用: ~{fee} SOL (交易费)',
+    private_transfer_confirm_unshield_fee: '• Unshield 费用: ~{fee} SOL ({percent}%)',
+    private_transfer_confirm_total_fee: '• *预估总费用:* ~{fee} SOL',
+    private_transfer_confirm_recipient_receives: '💵 *收款人将收到:* ~{amount} {token}',
+    private_transfer_processing_shield: '🔄 步骤 1/2: 正在 shield {amount} {token}...',
+    private_transfer_processing_unshield: '🔄 步骤 2/2: 正在 unshield 到收款人...',
+    private_transfer_success: '✅ *私密转账成功！*',
+    private_transfer_success_amount: '💰 发送数量: `{amount}` {token}',
+    private_transfer_success_to: '📍 发送至: `{address}`',
+    private_transfer_success_fee: '💸 总费用: {fee} SOL',
+    private_transfer_success_signature: '🔗 签名: `{signature}`',
+    private_transfer_success_link: '🔍 [在 Explorer 上查看交易](https://orbmarkets.io/tx/{signature}?tab=summary)',
+    private_transfer_failed: '❌ *私密转账失败*',
+    private_transfer_failed_shield: '❌ *Shield 步骤出错:* {error}',
+    private_transfer_failed_unshield: '❌ *Unshield 步骤出错:* {error}\n\n⚠️ 代币已被 shield。您可以手动 unshield。',
+
+    // Multi Private Send
+    menu_multi_private_send: '📤 批量发送',
+    multi_send_title: '📤 *批量私密转账*',
+    multi_send_description: '同时匿名发送代币到多个地址',
+    multi_send_select_token: '选择要发送的代币:',
+    multi_send_enter_recipients: '💬 请按以下格式输入收款人列表:\n\n`钱包地址, 数量`\n\n每行一个收款人。',
+    multi_send_format_example: '*示例:*\n```\nAddress1, 100\nAddress2, 200\nAddress3, 300\n```',
+    multi_send_confirm_title: '📤 *确认批量发送*',
+    multi_send_confirm_token: '代币: *{token}*',
+    multi_send_confirm_total_amount: '总数量: *{amount} {token}*',
+    multi_send_confirm_recipients_count: '收款人数: *{count}*',
+    multi_send_confirm_recipients_list: '📋 *收款人列表:*',
+    multi_send_confirm_fee_note: '⚠️ 每笔交易都会收取费用',
+    multi_send_processing: '🔄 正在处理 {current}/{total} 笔交易...',
+    multi_send_processing_recipient: '🔄 正在发送 {amount} {token} 到 `{address}`...',
+    multi_send_success: '✅ *批量发送成功！*',
+    multi_send_success_summary: '📊 成功发送 {success}/{total} 笔交易',
+    multi_send_partial_success: '⚠️ *部分完成*\n\n成功: {success}/{total}',
+    multi_send_failed: '❌ *批量发送失败*',
+    multi_send_invalid_format: '❌ 第 {line} 行格式无效: `{content}`',
+    multi_send_invalid_address: '❌ 第 {line} 行地址无效: `{address}`',
+    multi_send_invalid_amount: '❌ 第 {line} 行数量无效: `{amount}`',
+    multi_send_no_recipients: '❌ 未找到收款人。请按正确格式输入。',
 
     // Monitoring
     monitor_enabled_title: '✅ *余额监控已启用*',
@@ -715,8 +930,9 @@ const zh: LocaleStrings = {
     help_title: '📚 *Privacy Cash Bot 使用指南*',
     help_wallet_management: '*🔗 钱包管理*',
     help_balance: '*💰 余额*',
-    help_deposit: '*📥 存款*',
-    help_withdraw: '*📤 取款*',
+    help_shield: '*🛡️ Shield* - 将代币转入私密钱包',
+    help_unshield: '*📤 Unshield* - 从私密钱包提取代币',
+    help_private_transfer: '*🔐 私密转账* - 匿名发送代币',
     help_monitoring: '*🔔 监控*',
     help_utility: '*⚙️ 工具*',
     help_tip: '💡 *提示:* 使用 /menu 或 /start 打开按钮界面，操作更便捷！',

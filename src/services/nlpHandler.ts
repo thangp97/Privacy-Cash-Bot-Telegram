@@ -6,9 +6,9 @@
 import { TokenSymbol, SUPPORTED_TOKENS } from '../config.js';
 
 export type Intent = 
-    | 'deposit'
-    | 'withdraw'
-    | 'transfer'
+    | 'shield'
+    | 'unshield'
+    | 'private_transfer'
     | 'balance'
     | 'private_balance'
     | 'wallet_info'
@@ -28,23 +28,25 @@ export interface ParsedCommand {
 
 // Patterns for different intents in multiple languages
 const intentPatterns: Record<Intent, RegExp[]> = {
-    deposit: [
-        // English
-        /(?:deposit|add|put|send\s+to\s+private|nạp|gửi|chuyển\s+vào)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
-        /(?:i\s+want\s+to\s+)?deposit\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
+    shield: [
+        // Shield patterns
+        /(?:shield|deposit|add|put|send\s+to\s+private|nạp|gửi|chuyển\s+vào)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
+        /(?:i\s+want\s+to\s+)?(?:shield|deposit)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
         /nạp\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
         /存入\s*(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
+        /shield\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
     ],
-    withdraw: [
-        // Withdraw to self
-        /(?:withdraw|rút|取出|lấy\s+ra)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?(?:\s+(?:to\s+)?(?:my\s+)?(?:wallet|ví|自己))?$/i,
-        /(?:i\s+want\s+to\s+)?withdraw\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
+    unshield: [
+        // Unshield to self
+        /(?:unshield|withdraw|rút|取出|lấy\s+ra)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?(?:\s+(?:to\s+)?(?:my\s+)?(?:wallet|ví|自己))?$/i,
+        /(?:i\s+want\s+to\s+)?(?:unshield|withdraw)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
         /rút\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?/i,
     ],
-    transfer: [
-        // Transfer/withdraw to specific address
+    private_transfer: [
+        // Private Transfer/send to specific address
+        /(?:private\s*transfer|chuyển\s*riêng\s*tư|私密转账)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?\s+(?:to|đến|tới|给)\s*:?\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i,
         /(?:transfer|send|chuyển|gửi|转账)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?\s+(?:to|đến|tới|给)\s*:?\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i,
-        /(?:withdraw|rút|取出)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?\s+(?:to|đến|tới|给)\s*:?\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i,
+        /(?:unshield|withdraw|rút|取出)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?\s+(?:to|đến|tới|给)\s*:?\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i,
         /(?:send|gửi)\s+(\d+(?:\.\d+)?)\s*(sol|usdc|usdt|zec|ore|store)?\s+(?:to|đến)\s+(?:this\s+)?(?:wallet|address|ví|địa\s+chỉ)\s*:?\s*([1-9A-HJ-NP-Za-km-z]{32,44})/i,
     ],
     balance: [
@@ -110,8 +112,8 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
         }
     }
 
-    // Check transfer patterns first (most specific)
-    for (const pattern of intentPatterns.transfer) {
+    // Check private_transfer patterns first (most specific)
+    for (const pattern of intentPatterns.private_transfer) {
         const match = message.match(pattern);
         if (match) {
             const amount = parseFloat(match[1]);
@@ -120,7 +122,7 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
             
             if (amount > 0 && isValidSolanaAddress(address)) {
                 return {
-                    intent: 'transfer',
+                    intent: 'private_transfer',
                     amount,
                     token,
                     address,
@@ -131,8 +133,8 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
         }
     }
 
-    // Check deposit patterns
-    for (const pattern of intentPatterns.deposit) {
+    // Check shield patterns
+    for (const pattern of intentPatterns.shield) {
         const match = message.match(pattern);
         if (match) {
             const amount = parseFloat(match[1]);
@@ -140,7 +142,7 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
             
             if (amount > 0) {
                 return {
-                    intent: 'deposit',
+                    intent: 'shield',
                     amount,
                     token,
                     confidence: 0.85,
@@ -150,8 +152,8 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
         }
     }
 
-    // Check withdraw patterns
-    for (const pattern of intentPatterns.withdraw) {
+    // Check unshield patterns
+    for (const pattern of intentPatterns.unshield) {
         const match = message.match(pattern);
         if (match) {
             const amount = parseFloat(match[1]);
@@ -159,7 +161,7 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
             
             if (amount > 0) {
                 return {
-                    intent: 'withdraw',
+                    intent: 'unshield',
                     amount,
                     token,
                     confidence: 0.85,
@@ -171,7 +173,7 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
 
     // Check other intents
     for (const [intent, patterns] of Object.entries(intentPatterns)) {
-        if (intent === 'deposit' || intent === 'withdraw' || intent === 'transfer' || intent === 'unknown') {
+        if (intent === 'shield' || intent === 'unshield' || intent === 'private_transfer' || intent === 'unknown') {
             continue;
         }
         
@@ -193,7 +195,7 @@ export function parseNaturalLanguage(message: string): ParsedCommand | null {
 
     if (amountMatch && addressMatch) {
         return {
-            intent: 'transfer',
+            intent: 'private_transfer',
             amount: parseFloat(amountMatch[1]),
             token: parseTokenFromMatch(tokenMatch?.[1]),
             address: addressMatch[1],
@@ -230,20 +232,20 @@ function isValidSolanaAddress(address: string): boolean {
  */
 export function generateConfirmationMessage(parsed: ParsedCommand, lang: 'vi' | 'en' | 'zh'): string {
     const messages: Record<string, Record<string, string>> = {
-        deposit: {
-            vi: `Tôi hiểu bạn muốn *nạp ${parsed.amount} ${parsed.token || 'SOL'}* vào Privacy Cash.\n\nBấm xác nhận để tiếp tục:`,
-            en: `I understand you want to *deposit ${parsed.amount} ${parsed.token || 'SOL'}* to Privacy Cash.\n\nClick confirm to continue:`,
-            zh: `我理解您想要*存入 ${parsed.amount} ${parsed.token || 'SOL'}* 到 Privacy Cash。\n\n点击确认继续:`,
+        shield: {
+            vi: `Tôi hiểu bạn muốn *shield ${parsed.amount} ${parsed.token || 'SOL'}* vào Privacy Cash.\n\nBấm xác nhận để tiếp tục:`,
+            en: `I understand you want to *shield ${parsed.amount} ${parsed.token || 'SOL'}* to Privacy Cash.\n\nClick confirm to continue:`,
+            zh: `我理解您想要*shield ${parsed.amount} ${parsed.token || 'SOL'}* 到 Privacy Cash。\n\n点击确认继续:`,
         },
-        withdraw: {
-            vi: `Tôi hiểu bạn muốn *rút ${parsed.amount} ${parsed.token || 'SOL'}* về ví của bạn.\n\nBấm xác nhận để tiếp tục:`,
-            en: `I understand you want to *withdraw ${parsed.amount} ${parsed.token || 'SOL'}* to your wallet.\n\nClick confirm to continue:`,
-            zh: `我理解您想要*提取 ${parsed.amount} ${parsed.token || 'SOL'}* 到您的钱包。\n\n点击确认继续:`,
+        unshield: {
+            vi: `Tôi hiểu bạn muốn *unshield ${parsed.amount} ${parsed.token || 'SOL'}* về ví của bạn.\n\nBấm xác nhận để tiếp tục:`,
+            en: `I understand you want to *unshield ${parsed.amount} ${parsed.token || 'SOL'}* to your wallet.\n\nClick confirm to continue:`,
+            zh: `我理解您想要*unshield ${parsed.amount} ${parsed.token || 'SOL'}* 到您的钱包。\n\n点击确认继续:`,
         },
-        transfer: {
-            vi: `Tôi hiểu bạn muốn *chuyển ${parsed.amount} ${parsed.token || 'SOL'}* đến:\n\`${parsed.address}\`\n\nBấm xác nhận để tiếp tục:`,
-            en: `I understand you want to *transfer ${parsed.amount} ${parsed.token || 'SOL'}* to:\n\`${parsed.address}\`\n\nClick confirm to continue:`,
-            zh: `我理解您想要*转账 ${parsed.amount} ${parsed.token || 'SOL'}* 到:\n\`${parsed.address}\`\n\n点击确认继续:`,
+        private_transfer: {
+            vi: `Tôi hiểu bạn muốn *chuyển riêng tư ${parsed.amount} ${parsed.token || 'SOL'}* đến:\n\`${parsed.address}\`\n\nBấm xác nhận để tiếp tục:`,
+            en: `I understand you want to *private transfer ${parsed.amount} ${parsed.token || 'SOL'}* to:\n\`${parsed.address}\`\n\nClick confirm to continue:`,
+            zh: `我理解您想要*私密转账 ${parsed.amount} ${parsed.token || 'SOL'}* 到:\n\`${parsed.address}\`\n\n点击确认继续:`,
         },
     };
 
@@ -265,10 +267,10 @@ export function isNaturalLanguageCommand(message: string): boolean {
     
     // Check if it contains action words
     const actionWords = [
-        'deposit', 'withdraw', 'transfer', 'send', 'check', 'show', 'view',
-        'nạp', 'rút', 'chuyển', 'gửi', 'xem', 'kiểm tra',
-        '存入', '取出', '转账', '查看',
-        'balance', 'wallet', 'help',
+        'shield', 'unshield', 'private transfer', 'transfer', 'send', 'check', 'show', 'view',
+        'nạp', 'rút', 'chuyển', 'gửi', 'xem', 'kiểm tra', 'chuyển riêng tư',
+        '存入', '取出', '转账', '查看', '私密转账',
+        'balance', 'wallet', 'help', 'deposit', 'withdraw',
         'số dư', 'ví', 'trợ giúp',
         '余额', '钱包', '帮助',
     ];
