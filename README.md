@@ -1,141 +1,141 @@
 # Privacy Cash Telegram Bot
 
-Bot Telegram để tương tác với Privacy Cash SDK trên Solana blockchain - cho phép giao dịch riêng tư.
+A Telegram bot for interacting with the Privacy Cash SDK on Solana blockchain - enabling private transactions.
 
-## 🌟 Tính năng
+## 🌟 Features
 
-- 💰 **Nạp tiền (Deposit)**: Nạp SOL và các token SPL vào Privacy Cash
-- 💸 **Rút tiền (Withdraw)**: Rút SOL và token từ Privacy Cash một cách riêng tư
-- 📊 **Kiểm tra số dư**: Xem số dư công khai và riêng tư
-- 🔔 **Theo dõi biến động**: Nhận thông báo khi số dư thay đổi
-- 🪙 **Hỗ trợ nhiều token**: SOL, USDC, USDT, ZEC, ORE, STORE
+- 💰 **Deposit**: Deposit SOL and SPL tokens into Privacy Cash
+- 💸 **Withdraw**: Withdraw SOL and tokens from Privacy Cash privately
+- 📊 **Balance Check**: View public and private balances
+- 🔔 **Balance Monitoring**: Receive notifications when balance changes
+- 🪙 **Multi-token Support**: SOL, USDC, USDT, ZEC, ORE, STORE
 
-## 📋 Yêu cầu
+## 📋 Requirements
 
-- Node.js phiên bản 24 trở lên
-- Telegram Bot Token (lấy từ [@BotFather](https://t.me/BotFather))
-- Solana RPC URL (có thể dùng public RPC hoặc dịch vụ như Helius, QuickNode)
+- Node.js version 24 or higher
+- Telegram Bot Token (get from [@BotFather](https://t.me/BotFather))
+- Solana RPC URL (can use public RPC or services like Helius, QuickNode)
 
-## 🚀 Cài đặt
+## 🚀 Installation
 
-### 1. Clone và cài đặt dependencies
+### 1. Clone and install dependencies
 
 ```bash
 cd privacy-cash-telegram-bot
 npm install
 ```
 
-### 2. Cấu hình môi trường
+### 2. Configure environment
 
-Tạo file `.env` từ template:
+Create `.env` file from template:
 
 ```bash
 cp .env.example .env
 ```
 
-Chỉnh sửa file `.env`:
+Edit the `.env` file:
 
 ```env
-# Telegram Bot Token (bắt buộc)
+# Telegram Bot Token (required)
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token_here
 
-# Solana RPC URL (khuyến nghị dùng private RPC để tốc độ tốt hơn)
+# Solana RPC URL (private RPC recommended for better performance)
 SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
 
-# Khoảng thời gian kiểm tra số dư (phút)
+# Balance check interval (minutes)
 BALANCE_CHECK_INTERVAL=5
 
-# Chế độ debug
+# Debug mode
 DEBUG_MODE=false
 ```
 
-### 3. Build và chạy
+### 3. Build and run
 
 ```bash
 # Build TypeScript
 npm run build
 
-# Chạy bot
+# Run bot
 npm start
 
-# Hoặc chạy ở chế độ development
+# Or run in development mode
 npm run dev
 ```
 
-## 📱 Hướng dẫn sử dụng
+## 📱 Usage Guide
 
-### Kết nối ví
+### Connect Wallet
 
-1. Mở chat với bot trên Telegram
-2. Gửi lệnh `/connect <private_key>` với private key của bạn
-3. Bot sẽ xác nhận kết nối thành công
+1. Open chat with the bot on Telegram
+2. Send command `/connect <private_key>` with your private key
+3. Bot will confirm successful connection
 
-⚠️ **Lưu ý bảo mật**: 
-- Xóa tin nhắn chứa private key ngay sau khi gửi
-- Private key được lưu trữ cục bộ và mã hóa
-- Không bao giờ chia sẻ private key với bất kỳ ai
+⚠️ **Security Notice**: 
+- Delete the message containing your private key immediately after sending
+- Private key is stored locally and encrypted
+- Never share your private key with anyone
 
-### Các lệnh chính
+### Main Commands
 
-#### Quản lý ví
-| Lệnh | Mô tả |
-|------|-------|
-| `/start` | Bắt đầu và xem hướng dẫn |
-| `/help` | Danh sách tất cả các lệnh |
-| `/connect <key>` | Kết nối ví với private key |
-| `/disconnect` | Ngắt kết nối ví |
-| `/wallet` | Xem thông tin ví |
+#### Wallet Management
+| Command | Description |
+|---------|-------------|
+| `/start` | Start and view guide |
+| `/help` | List all commands |
+| `/connect <key>` | Connect wallet with private key |
+| `/disconnect` | Disconnect wallet |
+| `/wallet` | View wallet information |
 
-#### Số dư
-| Lệnh | Mô tả |
-|------|-------|
-| `/balance` | Xem tất cả số dư (công khai + riêng tư) |
-| `/privatebalance` | Chỉ xem số dư trong Privacy Cash |
+#### Balance
+| Command | Description |
+|---------|-------------|
+| `/balance` | View all balances (public + private) |
+| `/privatebalance` | View only Privacy Cash balance |
 
-#### Nạp tiền
-| Lệnh | Mô tả |
-|------|-------|
-| `/deposit <amount>` | Nạp SOL |
-| `/deposit <amount> <token>` | Nạp token (USDC, USDT, ...) |
-| `/depositsol <amount>` | Nạp SOL |
-| `/deposittoken <token> <amount>` | Nạp token SPL |
+#### Deposit
+| Command | Description |
+|---------|-------------|
+| `/deposit <amount>` | Deposit SOL |
+| `/deposit <amount> <token>` | Deposit token (USDC, USDT, ...) |
+| `/depositsol <amount>` | Deposit SOL |
+| `/deposittoken <token> <amount>` | Deposit SPL token |
 
-#### Rút tiền
-| Lệnh | Mô tả |
-|------|-------|
-| `/withdraw <amount>` | Rút SOL về ví mình |
-| `/withdraw <amount> <token>` | Rút token về ví mình |
-| `/withdraw <amount> <token> <address>` | Rút đến địa chỉ khác |
-| `/withdrawsol <amount> [address]` | Rút SOL |
-| `/withdrawtoken <token> <amount> [address]` | Rút token SPL |
+#### Withdraw
+| Command | Description |
+|---------|-------------|
+| `/withdraw <amount>` | Withdraw SOL to your wallet |
+| `/withdraw <amount> <token>` | Withdraw token to your wallet |
+| `/withdraw <amount> <token> <address>` | Withdraw to another address |
+| `/withdrawsol <amount> [address]` | Withdraw SOL |
+| `/withdrawtoken <token> <amount> [address]` | Withdraw SPL token |
 
-#### Theo dõi số dư
-| Lệnh | Mô tả |
-|------|-------|
-| `/monitor` | Bật thông báo khi số dư thay đổi |
-| `/stopmonitor` | Tắt thông báo |
+#### Balance Monitoring
+| Command | Description |
+|---------|-------------|
+| `/monitor` | Enable notifications on balance changes |
+| `/stopmonitor` | Disable notifications |
 
-#### Tiện ích
-| Lệnh | Mô tả |
-|------|-------|
-| `/tokens` | Danh sách token được hỗ trợ |
-| `/clearcache` | Xóa cache cục bộ |
+#### Utilities
+| Command | Description |
+|---------|-------------|
+| `/tokens` | List of supported tokens |
+| `/clearcache` | Clear local cache |
 
-### Ví dụ sử dụng
+### Usage Examples
 
 ```
-/deposit 0.1                    # Nạp 0.1 SOL
-/deposit 10 USDC                # Nạp 10 USDC
-/withdraw 0.05                  # Rút 0.05 SOL về ví mình
-/withdraw 5 USDC                # Rút 5 USDC về ví mình
-/withdrawsol 0.1 abc...xyz      # Rút 0.1 SOL đến địa chỉ khác
-/withdrawtoken USDC 10 abc...   # Rút 10 USDC đến địa chỉ khác
+/deposit 0.1                    # Deposit 0.1 SOL
+/deposit 10 USDC                # Deposit 10 USDC
+/withdraw 0.05                  # Withdraw 0.05 SOL to your wallet
+/withdraw 5 USDC                # Withdraw 5 USDC to your wallet
+/withdrawsol 0.1 abc...xyz      # Withdraw 0.1 SOL to another address
+/withdrawtoken USDC 10 abc...   # Withdraw 10 USDC to another address
 ```
 
-## 🔧 Token được hỗ trợ
+## 🔧 Supported Tokens
 
 | Token | Mint Address |
-|-------|-------------|
+|-------|--------------|
 | SOL | So11111111111111111111111111111111111111112 |
 | USDC | EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v |
 | USDT | Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB |
@@ -143,21 +143,21 @@ npm run dev
 | ORE | oreoU2P8bN6jkk3jbaiVxYnG1dCXcYxwhwyK9jSybcp |
 | STORE | sTorERYB6xAZ1SSbwpK3zoK2EEwbBrc7TZAzg1uCGiH |
 
-## 📁 Cấu trúc dự án
+## 📁 Project Structure
 
 ```
 privacy-cash-telegram-bot/
 ├── src/
 │   ├── index.ts              # Entry point
-│   ├── config.ts             # Cấu hình
+│   ├── config.ts             # Configuration
 │   ├── utils.ts              # Utility functions
 │   ├── commands/
 │   │   └── index.ts          # Command handlers
 │   └── services/
 │       ├── index.ts          # Services export
-│       ├── walletService.ts  # Quản lý ví và giao dịch
-│       └── balanceMonitor.ts # Theo dõi số dư
-├── user_data/                # Dữ liệu người dùng (auto-created)
+│       ├── walletService.ts  # Wallet and transaction management
+│       └── balanceMonitor.ts # Balance monitoring
+├── user_data/                # User data (auto-created)
 ├── cache/                    # Cache (auto-created)
 ├── package.json
 ├── tsconfig.json
@@ -165,35 +165,35 @@ privacy-cash-telegram-bot/
 └── README.md
 ```
 
-## ⚠️ Lưu ý quan trọng
+## ⚠️ Important Notes
 
-1. **Bảo mật Private Key**: Bot lưu trữ private key cục bộ. Đảm bảo bảo vệ thư mục `user_data/`.
+1. **Private Key Security**: The bot stores private keys locally. Make sure to protect the `user_data/` directory.
 
-2. **Phí giao dịch**: Rút tiền từ Privacy Cash sẽ tính phí. Kiểm tra số dư thực nhận sau giao dịch.
+2. **Transaction Fees**: Withdrawing from Privacy Cash incurs fees. Check the actual received amount after transaction.
 
-3. **RPC URL**: Nên sử dụng private RPC để có tốc độ và độ ổn định tốt hơn.
+3. **RPC URL**: It's recommended to use a private RPC for better speed and stability.
 
-4. **Node.js Version**: Yêu cầu Node.js 24+ để tương thích với Privacy Cash SDK.
+4. **Node.js Version**: Requires Node.js 24+ for Privacy Cash SDK compatibility.
 
-## 🐛 Xử lý lỗi thường gặp
+## 🐛 Common Error Handling
 
 ### "Insufficient balance"
-- Kiểm tra số dư công khai có đủ cho giao dịch nạp
-- Kiểm tra số dư riêng tư có đủ cho giao dịch rút
+- Check if public balance is sufficient for deposit transactions
+- Check if private balance is sufficient for withdrawal transactions
 
 ### "Invalid private key"
-- Đảm bảo private key đúng định dạng (base58)
-- Private key phải là key hợp lệ của Solana
+- Ensure private key is in correct format (base58)
+- Private key must be a valid Solana key
 
 ### "Rate limit"
-- Đợi một lúc và thử lại
-- Cân nhắc sử dụng private RPC
+- Wait a moment and try again
+- Consider using a private RPC
 
 ## 📄 License
 
 ISC License
 
-## 🔗 Liên kết
+## 🔗 Links
 
 - [Privacy Cash Website](https://privacycash.org)
 - [Privacy Cash SDK](https://github.com/Privacy-Cash/privacy-cash-sdk)

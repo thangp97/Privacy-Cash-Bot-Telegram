@@ -1876,6 +1876,20 @@ export function registerCommands(
                 const totalFee = shieldFee + unshieldFee.totalFee;
                 const recipientReceives = state.amount - unshieldFee.totalFee;
 
+                // Check if recipient receives negative amount
+                if (recipientReceives <= 0) {
+                    await ctx.reply(
+                        t(lang, 'error_amount_too_small', {
+                            amount: state.amount.toString(),
+                            token: state.token,
+                            fee: unshieldFee.totalFee.toFixed(4)
+                        }),
+                        { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                    );
+                    userStates.delete(chatId);
+                    return;
+                }
+
                 await ctx.reply(
                     `${t(lang, 'private_transfer_confirm_title')}\n\n` +
                     `${t(lang, 'private_transfer_confirm_token', { token: state.token })}\n` +
@@ -1925,6 +1939,20 @@ export function registerCommands(
             const unshieldFee = calculateWithdrawFee(state.amount);
             const totalFee = shieldFee + unshieldFee.totalFee;
             const recipientReceives = state.amount - unshieldFee.totalFee;
+
+            // Check if recipient receives negative amount
+            if (recipientReceives <= 0) {
+                await ctx.reply(
+                    t(lang, 'error_amount_too_small', {
+                        amount: state.amount.toString(),
+                        token: state.token,
+                        fee: unshieldFee.totalFee.toFixed(4)
+                    }),
+                    { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) }
+                );
+                userStates.delete(chatId);
+                return;
+            }
 
             await ctx.reply(
                 `${t(lang, 'private_transfer_confirm_title')}\n\n` +

@@ -24,6 +24,7 @@ export interface LocaleStrings {
     error_unknown: string;
     error_insufficient_balance_shield: string;
     error_insufficient_balance_unshield: string;
+    error_amount_too_small: string;
 
     // Main menu
     menu_title: string;
@@ -282,6 +283,7 @@ const vi: LocaleStrings = {
     error_unknown: 'Không xác định',
     error_insufficient_balance_shield: '❌ *Không đủ số dư để shield!*\n\n💰 Số dư hiện tại: {balance} {token}\n📥 Số lượng cần shield: {amount} {token}\n\nVui lòng nạp thêm {token} vào ví của bạn.',
     error_insufficient_balance_unshield: '❌ *Không đủ số dư riêng tư để unshield!*\n\n🔒 Số dư riêng tư: {balance} {token}\n📤 Số lượng cần unshield: {amount} {token}\n\nVui lòng shield thêm vào Privacy Cash trước.',
+    error_amount_too_small: '❌ *Số tiền quá nhỏ!*\n\n💸 Số tiền gửi: {amount} {token}\n💰 Tổng phí: {fee} {token}\n\nSố tiền người nhận sẽ nhận được là âm. Vui lòng nhập số tiền lớn hơn phí giao dịch.',
 
     // Main menu
     menu_title: '🏠 *Menu chính*\n\nChọn một tùy chọn bên dưới:',
@@ -540,6 +542,7 @@ const en: LocaleStrings = {
     error_unknown: 'Unknown',
     error_insufficient_balance_shield: '❌ *Insufficient balance to shield!*\n\n💰 Current balance: {balance} {token}\n📥 Amount to shield: {amount} {token}\n\nPlease add more {token} to your wallet.',
     error_insufficient_balance_unshield: '❌ *Insufficient private balance to unshield!*\n\n🔒 Private balance: {balance} {token}\n📤 Amount to unshield: {amount} {token}\n\nPlease shield more to Privacy Cash first.',
+    error_amount_too_small: '❌ *Amount too small!*\n\n💸 Send amount: {amount} {token}\n💰 Total fee: {fee} {token}\n\nThe recipient would receive a negative amount. Please enter an amount larger than the transaction fee.',
 
     // Main menu
     menu_title: '🏠 *Main Menu*\n\nSelect an option below:',
@@ -798,6 +801,7 @@ const zh: LocaleStrings = {
     error_unknown: '未知',
     error_insufficient_balance_shield: '❌ *余额不足，无法shield！*\n\n💰 当前余额: {balance} {token}\n📥 Shield金额: {amount} {token}\n\n请向您的钱包添加更多 {token}。',
     error_insufficient_balance_unshield: '❌ *私密余额不足，无法unshield！*\n\n🔒 私密余额: {balance} {token}\n📤 Unshield金额: {amount} {token}\n\n请先向 Privacy Cash shield更多。',
+    error_amount_too_small: '❌ *金额太小！*\n\n💸 发送金额: {amount} {token}\n💰 总费用: {fee} {token}\n\n收款人将收到负金额。请输入大于交易费的金额。',
 
     // Main menu
     menu_title: '🏠 *主菜单*\n\n请选择以下选项:',
