@@ -410,6 +410,9 @@ export function registerCommands(
                             return;
                         }
                     }
+                    const lang2 = getLang(chatId);
+                    const pcbSymbol2: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
+                    const tokenLabel2 = SUPPORTED_TOKENS[pcbSymbol2]?.symbol || 'PCB';
                     await sendSafeReply(ctx, t(lang2, 'error_pcb_insufficient', { token: tokenLabel2 }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang2));
                     return;
                 }
