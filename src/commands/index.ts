@@ -353,7 +353,8 @@ export function registerCommands(
                     // ignore and fall through to generic error message
                 }
                 const lang = getLang(chatId);
-                const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+                const pcbSymbol: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
+                const tokenLabel = SUPPORTED_TOKENS[pcbSymbol]?.symbol || 'PCB';
                 console.error(`[PCB] sending generic failure message to chat ${chatId} due to private-check error`);
                 await sendSafeReply(ctx, t(lang, 'error_pcb_check_failed', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
                 return;
@@ -409,17 +410,18 @@ export function registerCommands(
                             return;
                         }
                     }
-                    await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: SUPPORTED_TOKENS[pcbSymbol]?.symbol || 'PCB' }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+                    await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
                     return;
                 }
             } catch (innerErr) {
                 // ignore
             }
 
-            const lang = getLang(chatId);
-            const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+            const lang2 = getLang(chatId);
+            const pcbSymbol2: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
+            const tokenLabel2 = SUPPORTED_TOKENS[pcbSymbol2]?.symbol || 'PCB';
             console.error(`[PCB] final failure sending generic message to chat ${chatId}`);
-            await sendSafeReply(ctx, t(lang, 'error_pcb_check_failed', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+            await sendSafeReply(ctx, t(lang2, 'error_pcb_check_failed', { token: tokenLabel2 }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang2));
             return;
         }
     });
