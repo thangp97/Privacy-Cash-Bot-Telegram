@@ -410,7 +410,7 @@ export function registerCommands(
                             return;
                         }
                     }
-                    await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+                    await sendSafeReply(ctx, t(lang2, 'error_pcb_insufficient', { token: tokenLabel2 }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang2));
                     return;
                 }
             } catch (innerErr) {
