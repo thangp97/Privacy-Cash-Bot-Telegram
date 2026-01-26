@@ -25,6 +25,8 @@ export interface LocaleStrings {
     error_insufficient_balance_shield: string;
     error_insufficient_balance_unshield: string;
     error_amount_too_small: string;
+    error_pcb_insufficient: string;
+    error_pcb_check_failed: string;
 
     // Main menu
     menu_title: string;
@@ -343,6 +345,8 @@ const vi: LocaleStrings = {
     balance_private: '🔒 Riêng tư:',
     balance_failed: '❌ Không thể tải số dư.',
     private_balance_title: '🔒 *Số dư riêng tư (Privacy Cash)*',
+    error_pcb_insufficient: '🚫 Không có đủ token {token}.\n\nĐịa chỉ ví của bạn: `{address}`\nCần nạp thêm: {amount} {token}',
+    error_pcb_check_failed: '🚫 Không thể kiểm tra số dư {token}. Vui lòng thử lại sau.',
 
     // Wallet info
     wallet_title: '💳 *Thông tin ví*',
@@ -602,6 +606,8 @@ const en: LocaleStrings = {
     balance_private: '🔒 Private:',
     balance_failed: '❌ Failed to load balances.',
     private_balance_title: '🔒 *Private Balances (Privacy Cash)*',
+    error_pcb_insufficient: '🚫 Not enough {token} tokens.\n\nYour wallet address: `{address}`\nAmount needed: {amount} {token}',
+    error_pcb_check_failed: '🚫 Unable to check {token} balance. Please try again later.',
 
     // Wallet info
     wallet_title: '💳 *Wallet Info*',
@@ -861,6 +867,8 @@ const zh: LocaleStrings = {
     balance_private: '🔒 私密:',
     balance_failed: '❌ 无法加载余额。',
     private_balance_title: '🔒 *私密余额 (Privacy Cash)*',
+    error_pcb_insufficient: '🚫 {token} 代币不足。\n\n您的钱包地址: `{address}`\n需要充值: {amount} {token}',
+    error_pcb_check_failed: '🚫 无法检查 {token} 余额。请稍后重试。',
 
     // Wallet info
     wallet_title: '💳 *钱包信息*',

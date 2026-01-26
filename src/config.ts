@@ -98,9 +98,20 @@ export const SUPPORTED_TOKENS = {
         mintAddress: 'sTorERYB6xAZ1SSbwpK3zoK2EEwbBrc7TZAzg1uCGiH',
         icon: '🏪',  // Store/Shop
     },
+    PCB: {
+        name: 'Privacy Cash',
+        symbol: 'PCB',
+        decimals: 6,
+        unitsPerToken: 1e6,
+        mintAddress: 'Fy3NskRSSoKX8xovgGKNFCv96R6iRPW7ZiLRJHEopump',
+        icon: '🔐',
+    },
 } as const;
 
 export type TokenSymbol = keyof typeof SUPPORTED_TOKENS;
+
+// Symbol used as the canonical PCB token key in SUPPORTED_TOKENS
+export const PCB_TOKEN_SYMBOL: TokenSymbol = 'PCB';
 
 // Privacy Cash Fee Configuration
 export const PRIVACY_CASH_FEES = {

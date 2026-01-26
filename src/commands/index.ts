@@ -3,9 +3,10 @@ import { WalletService, DepositResult } from '../services/walletService.js';
 import { BalanceMonitor } from '../services/balanceMonitor.js';
 import { parseNaturalLanguage, isNaturalLanguageCommand, generateConfirmationMessage, ParsedCommand } from '../services/nlpHandler.js';
 import { scanQRFromBuffer, downloadFile, parseSolanaUri, isValidSolanaAddress } from '../services/qrService.js';
-import { SUPPORTED_TOKENS, TokenSymbol, PRIVACY_CASH_FEES, calculateWithdrawFee } from '../config.js';
+import { SUPPORTED_TOKENS, TokenSymbol, PRIVACY_CASH_FEES, calculateWithdrawFee, PCB_TOKEN_SYMBOL } from '../config.js';
 import { formatSOL, formatToken, shortenAddress } from '../utils.js';
 import { Language, t, getLanguageKeyboard, locales } from '../locales/index.js';
+import pcbGate from '../services/pcbGate.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -244,6 +245,23 @@ async function safeEditOrReply(ctx: Context, text: string, extra: any = {}): Pro
     }
 }
 
+// Safe reply that ignores 'bot blocked by the user' errors
+async function sendSafeReply(ctx: Context, text: string, extra: any = {}): Promise<any> {
+    try {
+        return await ctx.reply(text, extra);
+    } catch (err: any) {
+        // Telegram 403 when bot is blocked
+        const code = err?.response?.error_code;
+        const desc = err?.response?.description || '';
+        if (code === 403 && desc.toLowerCase().includes('bot was blocked')) {
+            // swallow silently
+            console.warn(`sendSafeReply: bot blocked by user; chat ${ctx.chat?.id}`);
+            return;
+        }
+        console.error('sendSafeReply error:', err?.message || err);
+    }
+}
+
 /**
  * Get language selection keyboard
  */
@@ -259,6 +277,153 @@ export function registerCommands(
     walletService: WalletService,
     balanceMonitor: BalanceMonitor
 ): void {
+    // Global middleware: require PCB eligibility for most interactions
+    bot.use(async (ctx: Context, next: any) => {
+        const chatId = ctx.chat?.id;
+        if (!chatId) return;
+
+        // Only allow: /start, /help, /language, Wallet Info, Export Private Key, Create New Wallet
+        const messageText = (ctx.message as any)?.text || '';
+        if (typeof messageText === 'string' && (
+            messageText.startsWith('/start') ||
+            messageText.startsWith('/help') ||
+            messageText.startsWith('/language') ||
+            messageText.startsWith('/wallet') ||
+            messageText.startsWith('/export') ||
+            messageText.startsWith('/connect') ||
+            messageText.startsWith('/disconnect') ||
+            messageText.startsWith('/tokens')
+        )) {
+            return await next();
+        }
+
+        // Only allow: language, menu, Wallet Info, Export Private Key, Create New Wallet actions
+        const cbData = (ctx.callbackQuery as any)?.data;
+        if (cbData && (
+            cbData.startsWith('lang_') ||
+            cbData === 'action_language' ||
+            cbData === 'action_menu' ||
+            cbData === 'action_create_wallet' ||
+            cbData === 'action_export_key' ||
+            cbData === 'confirm_export_key' ||
+            cbData === 'action_wallet' ||
+            cbData === 'action_connect' ||
+            cbData === 'action_import_wallet' ||
+            cbData === 'action_disconnect' ||
+            cbData === 'confirm_disconnect' ||
+            cbData === 'action_tokens'
+        )) {
+            return await next();
+        }
+
+        try {
+            const res = await pcbGate.checkPCBEligibility(walletService, chatId, 1_000_000, 3);
+            if (res.eligible) {
+                return await next();
+            }
+
+            // If private check failed due to error (e.g., rate limit), log it and fallback to public-only check
+            if (res.error) {
+                console.error(`[PCB] private check error for chat ${chatId}:`, res.error);
+                try {
+                    const publicBalances = await walletService.getBalances(chatId, false);
+                    if (publicBalances) {
+                                const pcbSymbol = PCB_TOKEN_SYMBOL as any;
+                                const info = SUPPORTED_TOKENS[pcbSymbol];
+                                if (info) {
+                                    const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
+                                    const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                                    const publicAmount = rawUnits / (info.unitsPerToken || 1);
+                                    if (publicAmount >= 1_000_000) {
+                                        return await next();
+                                    }
+                                }
+                        const lang = getLang(chatId);
+                        const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+                        const wallet = walletService.getWallet(chatId);
+                        if (wallet) {
+                            const needed = Math.max(0, 1_000_000 - (publicAmount || 0));
+                            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
+                        }
+                        else {
+                            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(false, lang));
+                        }
+                        return;
+                    }
+                } catch (innerErr) {
+                    // ignore and fall through to generic error message
+                }
+                const lang = getLang(chatId);
+                const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+                console.error(`[PCB] sending generic failure message to chat ${chatId} due to private-check error`);
+                await sendSafeReply(ctx, t(lang, 'error_pcb_check_failed', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+                return;
+            }
+
+            // Private check completed but user is not eligible
+            const lang = getLang(chatId);
+            const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+            try {
+                const publicBalances = await walletService.getBalances(chatId, false);
+                if (publicBalances) {
+                    const pcbSymbol = PCB_TOKEN_SYMBOL as any;
+                    const info = SUPPORTED_TOKENS[pcbSymbol];
+                    if (info) {
+                        const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
+                        const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                        const publicAmount = rawUnits / (info.unitsPerToken || 1);
+                        const wallet = walletService.getWallet(chatId);
+                        if (wallet) {
+                            const needed = Math.max(0, 1_000_000 - publicAmount);
+                            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
+                            return;
+                        }
+                    }
+                }
+            }
+            catch (e) {
+                // ignore and fall back to generic message below
+            }
+            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+            return;
+        } catch (e) {
+            // On unexpected errors, log and try public-only check before failing
+            console.error(`[PCB] unexpected error for chat ${chatId}:`, e);
+            try {
+                const publicBalances = await walletService.getBalances(chatId, false);
+                if (publicBalances) {
+                    const pcbSymbol = PCB_TOKEN_SYMBOL as any;
+                    const info = SUPPORTED_TOKENS[pcbSymbol];
+                    if (info) {
+                        const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
+                        const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                        const publicAmount = rawUnits / (info.unitsPerToken || 1);
+                        if (publicAmount >= 1_000_000) {
+                            return await next();
+                        }
+                    }
+                    const lang = getLang(chatId);
+                    const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+                    const wallet = walletService.getWallet(chatId);
+                    if (wallet) {
+                        const needed = Math.max(0, 1_000_000 - (publicAmount || 0));
+                        await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
+                        return;
+                    }
+                    await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+                    return;
+                }
+            } catch (innerErr) {
+                // ignore
+            }
+
+            const lang = getLang(chatId);
+            const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+            console.error(`[PCB] final failure sending generic message to chat ${chatId}`);
+            await sendSafeReply(ctx, t(lang, 'error_pcb_check_failed', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+            return;
+        }
+    });
     // Start command
     bot.command('start', (ctx: Context) => handleStart(ctx, walletService));
 
