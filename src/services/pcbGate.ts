@@ -48,7 +48,7 @@ export async function checkPCBEligibility(
             }
 
             // Support either normalized public amount or raw units. Prefer explicit raw field if present.
-            const tokenEntry = balances.tokens?.[pcbSymbol as any] || {};
+            const tokenEntry = balances.tokens?.[pcbSymbol] || {};
             const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
             const balance = rawUnits / (info.unitsPerToken || 1);
 
@@ -95,7 +95,7 @@ export async function getPCBBalance(
             return res;
         }
 
-        const tokenEntry = balances.tokens?.[pcbSymbol as any] || {};
+        const tokenEntry = balances.tokens?.[pcbSymbol] || {};
         const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
         const balance = rawUnits / (info.unitsPerToken || 1);
         const res = { balance };

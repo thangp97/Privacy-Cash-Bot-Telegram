@@ -326,29 +326,28 @@ export function registerCommands(
             if (res.error) {
                 console.error(`[PCB] private check error for chat ${chatId}:`, res.error);
                 try {
+                    const pcbSymbol: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
                     const publicBalances = await walletService.getBalances(chatId, false);
                     if (publicBalances) {
-                                const pcbSymbol = PCB_TOKEN_SYMBOL as any;
-                                const info = SUPPORTED_TOKENS[pcbSymbol];
-                                if (info) {
-                                    const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
-                                    const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
-                                    const publicAmount = rawUnits / (info.unitsPerToken || 1);
-                                    if (publicAmount >= 1_000_000) {
-                                        return await next();
-                                    }
-                                }
-                        const lang = getLang(chatId);
-                        const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
-                        const wallet = walletService.getWallet(chatId);
-                        if (wallet) {
-                            const needed = Math.max(0, 1_000_000 - (publicAmount || 0));
-                            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
+                        const info = SUPPORTED_TOKENS[pcbSymbol];
+                        if (info) {
+                            const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
+                            const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                            const publicAmount = rawUnits / (info.unitsPerToken || 1);
+                            if (publicAmount >= 1_000_000) {
+                                return await next();
+                            }
+                            const lang = getLang(chatId);
+                            const tokenLabel = info.symbol || 'PCB';
+                            const wallet = walletService.getWallet(chatId);
+                            if (wallet) {
+                                const needed = Math.max(0, 1_000_000 - publicAmount);
+                                await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
+                            } else {
+                                await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(false, lang));
+                            }
+                            return;
                         }
-                        else {
-                            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(false, lang));
-                        }
-                        return;
                     }
                 } catch (innerErr) {
                     // ignore and fall through to generic error message
@@ -362,11 +361,11 @@ export function registerCommands(
 
             // Private check completed but user is not eligible
             const lang = getLang(chatId);
-            const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
+            const pcbSymbol: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
+            const tokenLabel = SUPPORTED_TOKENS[pcbSymbol]?.symbol || 'PCB';
             try {
                 const publicBalances = await walletService.getBalances(chatId, false);
                 if (publicBalances) {
-                    const pcbSymbol = PCB_TOKEN_SYMBOL as any;
                     const info = SUPPORTED_TOKENS[pcbSymbol];
                     if (info) {
                         const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
@@ -392,7 +391,7 @@ export function registerCommands(
             try {
                 const publicBalances = await walletService.getBalances(chatId, false);
                 if (publicBalances) {
-                    const pcbSymbol = PCB_TOKEN_SYMBOL as any;
+                    const pcbSymbol: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
                     const info = SUPPORTED_TOKENS[pcbSymbol];
                     if (info) {
                         const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
@@ -401,16 +400,16 @@ export function registerCommands(
                         if (publicAmount >= 1_000_000) {
                             return await next();
                         }
+                        const lang = getLang(chatId);
+                        const tokenLabel = info.symbol || 'PCB';
+                        const wallet = walletService.getWallet(chatId);
+                        if (wallet) {
+                            const needed = Math.max(0, 1_000_000 - publicAmount);
+                            await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
+                            return;
+                        }
                     }
-                    const lang = getLang(chatId);
-                    const tokenLabel = SUPPORTED_TOKENS[PCB_TOKEN_SYMBOL as any]?.symbol || 'PCB';
-                    const wallet = walletService.getWallet(chatId);
-                    if (wallet) {
-                        const needed = Math.max(0, 1_000_000 - (publicAmount || 0));
-                        await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
-                        return;
-                    }
-                    await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
+                    await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: SUPPORTED_TOKENS[pcbSymbol]?.symbol || 'PCB' }), getMainMenuKeyboard(walletService.hasWallet(chatId), lang));
                     return;
                 }
             } catch (innerErr) {
