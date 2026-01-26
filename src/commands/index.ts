@@ -331,8 +331,8 @@ export function registerCommands(
                     if (publicBalances) {
                         const info = SUPPORTED_TOKENS[pcbSymbol];
                         if (info) {
-                            const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
-                            const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                            const tokenEntry = publicBalances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
+                            const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
                             const publicAmount = rawUnits / (info.unitsPerToken || 1);
                             if (publicAmount >= 1_000_000) {
                                 return await next();
@@ -368,8 +368,8 @@ export function registerCommands(
                 if (publicBalances) {
                     const info = SUPPORTED_TOKENS[pcbSymbol];
                     if (info) {
-                        const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
-                        const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                        const tokenEntry = publicBalances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
+                        const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
                         const publicAmount = rawUnits / (info.unitsPerToken || 1);
                         const wallet = walletService.getWallet(chatId);
                         if (wallet) {
@@ -394,8 +394,8 @@ export function registerCommands(
                     const pcbSymbol: TokenSymbol = PCB_TOKEN_SYMBOL as TokenSymbol;
                     const info = SUPPORTED_TOKENS[pcbSymbol];
                     if (info) {
-                        const tokenEntry = publicBalances.tokens?.[pcbSymbol] || {};
-                        const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+                        const tokenEntry = publicBalances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
+                        const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
                         const publicAmount = rawUnits / (info.unitsPerToken || 1);
                         if (publicAmount >= 1_000_000) {
                             return await next();

@@ -48,8 +48,8 @@ export async function checkPCBEligibility(
             }
 
             // Support either normalized public amount or raw units. Prefer explicit raw field if present.
-            const tokenEntry = balances.tokens?.[pcbSymbol] || {};
-            const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+            const tokenEntry = balances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
+            const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
             const balance = rawUnits / (info.unitsPerToken || 1);
 
             const res = { eligible: balance >= minAmount, balance };
@@ -95,8 +95,8 @@ export async function getPCBBalance(
             return res;
         }
 
-        const tokenEntry = balances.tokens?.[pcbSymbol] || {};
-        const rawUnits = tokenEntry.publicRaw ?? tokenEntry.public ?? 0;
+        const tokenEntry = balances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
+        const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
         const balance = rawUnits / (info.unitsPerToken || 1);
         const res = { balance };
         cache.set(chatId, { expiresAt: Date.now() + CACHE_TTL_SUCCESS, result: res });
