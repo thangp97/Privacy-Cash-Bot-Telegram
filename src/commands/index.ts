@@ -15,7 +15,7 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Banner path - go up from dist/commands to project root, then to src/assets/images
-const BANNER_PATH = path.join(__dirname, '../../src/assets/images/banner.png');
+const BANNER_PATH = path.join(__dirname, '../../src/assets/images/banner.jpg');
 
 // Cache banner file_id to avoid re-uploading
 let cachedBannerFileId: string | null = null;
