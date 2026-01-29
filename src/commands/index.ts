@@ -110,17 +110,17 @@ function getMainMenuKeyboard(hasWallet: boolean, lang: Language) {
  * Get token selection keyboard for shield
  */
 function getShieldTokenKeyboard(lang: Language) {
-    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) =>
         Markup.button.callback(`${info.icon} ${symbol}`, `shield_token_${symbol}`)
     );
-    
+
     // Arrange in rows of 3
     const rows = [];
     for (let i = 0; i < buttons.length; i += 3) {
         rows.push(buttons.slice(i, i + 3));
     }
     rows.push([Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]);
-    
+
     return Markup.inlineKeyboard(rows);
 }
 
@@ -128,17 +128,17 @@ function getShieldTokenKeyboard(lang: Language) {
  * Get token selection keyboard for unshield
  */
 function getUnshieldTokenKeyboard(lang: Language) {
-    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) =>
         Markup.button.callback(`${info.icon} ${symbol}`, `unshield_token_${symbol}`)
     );
-    
+
     // Arrange in rows of 3
     const rows = [];
     for (let i = 0; i < buttons.length; i += 3) {
         rows.push(buttons.slice(i, i + 3));
     }
     rows.push([Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]);
-    
+
     return Markup.inlineKeyboard(rows);
 }
 
@@ -146,17 +146,17 @@ function getUnshieldTokenKeyboard(lang: Language) {
  * Get token selection keyboard for private transfer
  */
 function getPrivateTransferTokenKeyboard(lang: Language) {
-    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) =>
         Markup.button.callback(`${info.icon} ${symbol}`, `ptransfer_token_${symbol}`)
     );
-    
+
     // Arrange in rows of 3
     const rows = [];
     for (let i = 0; i < buttons.length; i += 3) {
         rows.push(buttons.slice(i, i + 3));
     }
     rows.push([Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]);
-    
+
     return Markup.inlineKeyboard(rows);
 }
 
@@ -164,17 +164,17 @@ function getPrivateTransferTokenKeyboard(lang: Language) {
  * Get token selection keyboard for multi private send
  */
 function getMultiPrivateSendTokenKeyboard(lang: Language) {
-    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) => 
+    const buttons = Object.entries(SUPPORTED_TOKENS).map(([symbol, info]) =>
         Markup.button.callback(`${info.icon} ${symbol}`, `multi_send_token_${symbol}`)
     );
-    
+
     // Arrange in rows of 3
     const rows = [];
     for (let i = 0; i < buttons.length; i += 3) {
         rows.push(buttons.slice(i, i + 3));
     }
     rows.push([Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]);
-    
+
     return Markup.inlineKeyboard(rows);
 }
 
@@ -232,12 +232,12 @@ async function safeEditOrReply(ctx: Context, text: string, extra: any = {}): Pro
         return await ctx.editMessageText(text, extra);
     } catch (error: any) {
         // If it fails because it's a photo message, delete and send new
-        if (error?.description?.includes('no text in the message') || 
+        if (error?.description?.includes('no text in the message') ||
             error?.description?.includes('message to edit not found')) {
             try {
                 // Try to delete the original message
-                await ctx.deleteMessage().catch(() => {});
-            } catch {}
+                await ctx.deleteMessage().catch(() => { });
+            } catch { }
             // Send a new message
             return await ctx.reply(text, extra);
         }
@@ -317,7 +317,7 @@ export function registerCommands(
         }
 
         try {
-            const res = await pcbGate.checkPCBEligibility(walletService, chatId, 1_000_000, 3);
+            const res = await pcbGate.checkPCBEligibility(walletService, chatId, 0, 3);
             if (res.eligible) {
                 return await next();
             }
@@ -334,14 +334,14 @@ export function registerCommands(
                             const tokenEntry = publicBalances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
                             const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
                             const publicAmount = rawUnits / (info.unitsPerToken || 1);
-                            if (publicAmount >= 1_000_000) {
+                            if (publicAmount >= 0) {
                                 return await next();
                             }
                             const lang = getLang(chatId);
                             const tokenLabel = info.symbol || 'PCB';
                             const wallet = walletService.getWallet(chatId);
                             if (wallet) {
-                                const needed = Math.max(0, 1_000_000 - publicAmount);
+                                const needed = Math.max(0, 0 - publicAmount);
                                 await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
                             } else {
                                 await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel }), getMainMenuKeyboard(false, lang));
@@ -374,7 +374,7 @@ export function registerCommands(
                         const publicAmount = rawUnits / (info.unitsPerToken || 1);
                         const wallet = walletService.getWallet(chatId);
                         if (wallet) {
-                            const needed = Math.max(0, 1_000_000 - publicAmount);
+                            const needed = Math.max(0, 0 - publicAmount);
                             await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
                             return;
                         }
@@ -398,14 +398,14 @@ export function registerCommands(
                         const tokenEntry = publicBalances.tokens?.[pcbSymbol] as { publicRaw?: number; public?: number } | undefined;
                         const rawUnits = tokenEntry?.publicRaw ?? tokenEntry?.public ?? 0;
                         const publicAmount = rawUnits / (info.unitsPerToken || 1);
-                        if (publicAmount >= 1_000_000) {
+                        if (publicAmount >= 0) {
                             return await next();
                         }
                         const lang = getLang(chatId);
                         const tokenLabel = info.symbol || 'PCB';
                         const wallet = walletService.getWallet(chatId);
                         if (wallet) {
-                            const needed = Math.max(0, 1_000_000 - publicAmount);
+                            const needed = Math.max(0, 0 - publicAmount);
                             await sendSafeReply(ctx, t(lang, 'error_pcb_insufficient', { token: tokenLabel, address: wallet.publicKey, amount: needed }), getMainMenuKeyboard(true, lang));
                             return;
                         }
@@ -477,7 +477,7 @@ export function registerCommands(
         if (!chatId) return;
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
-        
+
         await safeEditOrReply(ctx,
             `${t(lang, 'language_title')}\n\n${t(lang, 'language_select')}`,
             { parse_mode: 'Markdown', ...getLanguageSelectionKeyboard() }
@@ -488,11 +488,11 @@ export function registerCommands(
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
-        
+
         userLanguages.set(chatId, 'en');
         const lang: Language = 'en';
         const hasWallet = walletService.hasWallet(chatId);
-        
+
         await safeEditOrReply(ctx,
             `${locales[lang].languageFlag} ${t(lang, 'language_changed')}\n\n${t(lang, 'menu_title')}`,
             { parse_mode: 'Markdown', ...getMainMenuKeyboard(hasWallet, lang) }
@@ -503,11 +503,11 @@ export function registerCommands(
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
-        
+
         userLanguages.set(chatId, 'en');
         const lang: Language = 'en';
         const hasWallet = walletService.hasWallet(chatId);
-        
+
         await safeEditOrReply(ctx,
             `${locales[lang].languageFlag} ${t(lang, 'language_changed')}\n\n${t(lang, 'menu_title')}`,
             { parse_mode: 'Markdown', ...getMainMenuKeyboard(hasWallet, lang) }
@@ -518,11 +518,11 @@ export function registerCommands(
         const chatId = ctx.chat?.id;
         if (!chatId) return;
         await ctx.answerCbQuery();
-        
+
         userLanguages.set(chatId, 'zh');
         const lang: Language = 'zh';
         const hasWallet = walletService.hasWallet(chatId);
-        
+
         await safeEditOrReply(ctx,
             `${locales[lang].languageFlag} ${t(lang, 'language_changed')}\n\n${t(lang, 'menu_title')}`,
             { parse_mode: 'Markdown', ...getMainMenuKeyboard(hasWallet, lang) }
@@ -654,7 +654,7 @@ export function registerCommands(
         if (!chatId) return;
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
-        
+
         if (!walletService.hasWallet(chatId)) {
             await safeEditOrReply(ctx, t(lang, 'error_no_wallet'), getBackToMenuKeyboard(lang));
             return;
@@ -701,10 +701,12 @@ export function registerCommands(
             `${t(lang, 'export_key_warning_2')}\n` +
             `${t(lang, 'export_key_warning_3')}\n\n` +
             `${t(lang, 'export_key_confirm_question')}`,
-            { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                [Markup.button.callback(t(lang, 'export_key_confirm_yes'), 'confirm_export_key')],
-                [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
-            ]) }
+            {
+                parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                    [Markup.button.callback(t(lang, 'export_key_confirm_yes'), 'confirm_export_key')],
+                    [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
+                ])
+            }
         );
     });
 
@@ -752,14 +754,14 @@ export function registerCommands(
         if (!chatId) return;
         const lang = getLang(chatId);
         await ctx.answerCbQuery(t(lang, 'balance_loading'));
-        
+
         if (!walletService.hasWallet(chatId)) {
             await safeEditOrReply(ctx, t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
             return;
         }
 
         await safeEditOrReply(ctx, t(lang, 'balance_loading'), { parse_mode: 'Markdown' });
-        
+
         try {
             const balances = await walletService.getBalances(chatId);
             if (!balances) {
@@ -768,7 +770,7 @@ export function registerCommands(
             }
 
             let message = `${t(lang, 'balance_title')}\n\n`;
-            
+
             // SOL
             message += `*${SUPPORTED_TOKENS.SOL.icon} SOL*\n`;
             message += `  ${t(lang, 'balance_public')} \`${formatSOL(balances.sol.public)}\` SOL\n`;
@@ -800,14 +802,14 @@ export function registerCommands(
         if (!chatId) return;
         const lang = getLang(chatId);
         await ctx.answerCbQuery(t(lang, 'loading'));
-        
+
         if (!walletService.hasWallet(chatId)) {
             await safeEditOrReply(ctx, t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
             return;
         }
 
         await safeEditOrReply(ctx, t(lang, 'balance_loading'), { parse_mode: 'Markdown' });
-        
+
         try {
             const balances = await walletService.getBalances(chatId);
             if (!balances) {
@@ -860,7 +862,7 @@ export function registerCommands(
         const chatId = ctx.chat?.id || 0;
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
-        
+
         let message = `${t(lang, 'tokens_title')}\n\n`;
 
         for (const [symbol, info] of Object.entries(SUPPORTED_TOKENS)) {
@@ -877,7 +879,7 @@ export function registerCommands(
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
         const hasWallet = walletService.hasWallet(chatId);
-        
+
         const helpMessages: Record<Language, string> = {
             vi: '❓ *Hướng dẫn sử dụng*\n\n' +
                 '*1. Kết nối ví:*\n' +
@@ -910,7 +912,7 @@ export function registerCommands(
                 '   点击"余额"查看公开和私密余额\n\n' +
                 '⚠️ *注意:* 从 Privacy Cash 取款将收取费用'
         };
-        
+
         await safeEditOrReply(ctx, helpMessages[lang], { parse_mode: 'Markdown', ...getBackToMenuKeyboard(lang) });
     });
 
@@ -979,7 +981,7 @@ export function registerCommands(
         }
 
         pendingNLPCommands.delete(chatId);
-        
+
         // Default token to SOL if not specified
         const token = parsed.token || 'SOL';
 
@@ -1013,7 +1015,7 @@ export function registerCommands(
             }
 
             await safeEditOrReply(ctx, t(lang, 'shield_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
-            
+
             try {
                 let result;
                 if (token === 'SOL') {
@@ -1070,7 +1072,7 @@ export function registerCommands(
             }
         } else if ((parsed.intent === 'unshield' || parsed.intent === 'private_transfer') && parsed.amount) {
             const recipientAddress = parsed.address; // undefined for unshield to self
-            
+
             // Check private balance before unshielding
             try {
                 const balances = await walletService.getBalances(chatId, true);
@@ -1099,7 +1101,7 @@ export function registerCommands(
             }
 
             await safeEditOrReply(ctx, t(lang, 'unshield_processing', { amount: parsed.amount, token: token }), { parse_mode: 'Markdown' });
-            
+
             try {
                 let result;
                 if (token === 'SOL') {
@@ -1137,10 +1139,10 @@ export function registerCommands(
         if (!chatId) return;
         await ctx.answerCbQuery();
         const lang = getLang(chatId);
-        
+
         pendingNLPCommands.delete(chatId);
         const hasWallet = walletService.hasWallet(chatId);
-        
+
         await safeEditOrReply(ctx,
             t(lang, 'cancelled'),
             { parse_mode: 'Markdown', ...getMainMenuKeyboard(hasWallet, lang) }
@@ -1175,10 +1177,10 @@ export function registerCommands(
             await ctx.answerCbQuery();
             const lang = getLang(chatId);
 
-            userStates.set(chatId, { 
-                action: 'shield', 
-                token: symbol as TokenSymbol, 
-                step: 'enter_amount' 
+            userStates.set(chatId, {
+                action: 'shield',
+                token: symbol as TokenSymbol,
+                step: 'enter_amount'
             });
 
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
@@ -1219,10 +1221,10 @@ export function registerCommands(
             await ctx.answerCbQuery();
             const lang = getLang(chatId);
 
-            userStates.set(chatId, { 
-                action: 'unshield', 
-                token: symbol as TokenSymbol, 
-                step: 'enter_amount' 
+            userStates.set(chatId, {
+                action: 'unshield',
+                token: symbol as TokenSymbol,
+                step: 'enter_amount'
             });
 
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
@@ -1341,18 +1343,18 @@ export function registerCommands(
                 await balanceMonitor.refreshUserBalance(chatId);
                 const wallet = walletService.getWallet(chatId);
                 const recipient = state.recipientAddress || wallet?.publicKey || '';
-                
+
                 let message = `${t(lang, 'unshield_success')}\n\n`;
                 message += `${t(lang, 'unshield_success_token', { token: state.token })}\n`;
                 message += `${t(lang, 'unshield_success_amount', { amount: state.amount })}\n`;
-                
+
                 if (state.token === 'SOL' && 'actualAmount' in result && 'fee' in result) {
                     const actualAmount = ((result.actualAmount as number) || 0) / 1e9;
                     const fee = ((result.fee as number) || 0) / 1e9;
                     message += `${t(lang, 'unshield_success_received', { amount: actualAmount.toFixed(6) })}\n`;
                     message += `${t(lang, 'unshield_success_fee', { fee: fee.toFixed(6) })}\n`;
                 }
-                
+
                 message += `${t(lang, 'unshield_success_to', { address: shortenAddress(recipient) })}\n`;
                 message += `${t(lang, 'unshield_success_signature', { signature: shortenAddress(result.signature || '', 8) })}\n`;
                 message += `${t(lang, 'unshield_success_link', { signature: result.signature || '' })}`;
@@ -1485,9 +1487,9 @@ export function registerCommands(
             const existingState = userStates.get(chatId);
             const recipientAddress = existingState?.recipientAddress;
 
-            userStates.set(chatId, { 
-                action: 'private_transfer', 
-                token: symbol as TokenSymbol, 
+            userStates.set(chatId, {
+                action: 'private_transfer',
+                token: symbol as TokenSymbol,
                 step: 'enter_amount',
                 recipientAddress: recipientAddress // Preserve address if exists
             });
@@ -1495,12 +1497,12 @@ export function registerCommands(
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
             let message = `🔐 *Private Transfer ${symbol}*\n\n` +
                 `Token: ${tokenInfo.name}\n`;
-            
+
             // Show recipient address if already set (from QR)
             if (recipientAddress) {
                 message += `📍 To: \`${shortenAddress(recipientAddress)}\`\n`;
             }
-            
+
             message += `\n${t(lang, 'private_transfer_enter_amount', { token: symbol })}`;
 
             await safeEditOrReply(ctx,
@@ -1584,12 +1586,12 @@ export function registerCommands(
 
             if (unshieldResult.success) {
                 await balanceMonitor.refreshUserBalance(chatId);
-                
+
                 let totalFee = 0;
                 if (state.token === 'SOL' && 'fee' in unshieldResult) {
                     totalFee = ((unshieldResult.fee as number) || 0) / 1e9;
                 }
-                
+
                 let message = `${t(lang, 'private_transfer_success')}\n\n`;
                 message += `${t(lang, 'private_transfer_success_amount', { amount: state.amount, token: state.token })}\n`;
                 message += `${t(lang, 'private_transfer_success_to', { address: shortenAddress(state.recipientAddress) })}\n`;
@@ -1647,10 +1649,10 @@ export function registerCommands(
             await ctx.answerCbQuery();
             const lang = getLang(chatId);
 
-            userStates.set(chatId, { 
-                action: 'multi_private_send', 
-                token: symbol as TokenSymbol, 
-                step: 'enter_recipients' 
+            userStates.set(chatId, {
+                action: 'multi_private_send',
+                token: symbol as TokenSymbol,
+                step: 'enter_recipients'
             });
 
             const tokenInfo = SUPPORTED_TOKENS[symbol as TokenSymbol];
@@ -1712,11 +1714,11 @@ export function registerCommands(
         // Process each recipient
         let successCount = 0;
         let failedRecipients: { address: string; amount: number; error: string }[] = [];
-        
+
         for (let i = 0; i < state.multiRecipients.length; i++) {
             const recipient = state.multiRecipients[i];
-            
-            await safeEditOrReply(ctx, 
+
+            await safeEditOrReply(ctx,
                 `${t(lang, 'multi_send_processing', { current: i + 1, total: totalRecipients })}\n\n` +
                 `${t(lang, 'multi_send_processing_recipient', { amount: recipient.amount, token: state.token, address: shortenAddress(recipient.address) })}`,
                 { parse_mode: 'Markdown' }
@@ -1732,10 +1734,10 @@ export function registerCommands(
                 }
 
                 if (!shieldResult.success) {
-                    failedRecipients.push({ 
-                        address: recipient.address, 
-                        amount: recipient.amount, 
-                        error: `Shield failed: ${shieldResult.error}` 
+                    failedRecipients.push({
+                        address: recipient.address,
+                        amount: recipient.amount,
+                        error: `Shield failed: ${shieldResult.error}`
                     });
                     continue;
                 }
@@ -1751,17 +1753,17 @@ export function registerCommands(
                 if (unshieldResult.success) {
                     successCount++;
                 } else {
-                    failedRecipients.push({ 
-                        address: recipient.address, 
-                        amount: recipient.amount, 
-                        error: `Unshield failed: ${unshieldResult.error}` 
+                    failedRecipients.push({
+                        address: recipient.address,
+                        amount: recipient.amount,
+                        error: `Unshield failed: ${unshieldResult.error}`
                     });
                 }
             } catch (error) {
-                failedRecipients.push({ 
-                    address: recipient.address, 
-                    amount: recipient.amount, 
-                    error: error instanceof Error ? error.message : 'Unknown error' 
+                failedRecipients.push({
+                    address: recipient.address,
+                    amount: recipient.amount,
+                    error: error instanceof Error ? error.message : 'Unknown error'
                 });
             }
         }
@@ -1802,25 +1804,25 @@ export function registerCommands(
 
         // @ts-ignore
         const text = ctx.message?.text || '';
-        
+
         // Ignore commands
         if (text.startsWith('/')) return;
 
         const state = userStates.get(chatId);
-        
+
         // Debug logging
         console.log(`[NLP Debug] chatId: ${chatId}, text: "${text}", hasState: ${!!state}`);
-        
+
         // If no active state, try to parse as natural language command
         if (!state) {
             // Check if it looks like a natural language command
             const isNLP = isNaturalLanguageCommand(text);
             console.log(`[NLP Debug] isNaturalLanguageCommand: ${isNLP}`);
-            
+
             if (isNLP) {
                 const parsed = parseNaturalLanguage(text);
                 console.log(`[NLP Debug] parsed:`, parsed);
-                
+
                 if (parsed && parsed.confidence >= 0.6) {
                     // Handle different intents
                     switch (parsed.intent) {
@@ -1851,31 +1853,132 @@ export function registerCommands(
                                 }
                             } else {
                                 const msg = lang === 'vi' ? '⚠️ Bạn đã có ví rồi!' :
-                                           lang === 'zh' ? '⚠️ 您已经有钱包了！' :
-                                           '⚠️ You already have a wallet!';
+                                    lang === 'zh' ? '⚠️ 您已经有钱包了！' :
+                                        '⚠️ You already have a wallet!';
                                 await ctx.reply(msg, getMainMenuKeyboard(true, lang));
                             }
                             return;
                         case 'shield':
+                            if (!walletService.hasWallet(chatId)) {
+                                await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+                                return;
+                            }
+
+                            // If amount is missing, treat as "I want to shield" command
+                            if (!parsed.amount) {
+                                userStates.set(chatId, { action: 'shield', step: 'enter_amount' });
+                                await ctx.reply(
+                                    `${t(lang, 'shield_title')}\n\n${t(lang, 'shield_enter_amount')}`,
+                                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+                                );
+                                return;
+                            }
+
+                            // Full command, ask for confirmation
+                            pendingNLPCommands.set(chatId, parsed);
+                            const confirmMsgShield = generateConfirmationMessage(parsed, lang);
+                            await ctx.reply(
+                                confirmMsgShield,
+                                {
+                                    parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                                        [Markup.button.callback(t(lang, 'confirm'), 'nlp_confirm')],
+                                        [Markup.button.callback(t(lang, 'cancel'), 'nlp_cancel')]
+                                    ])
+                                }
+                            );
+                            return;
+
                         case 'unshield':
+                            if (!walletService.hasWallet(chatId)) {
+                                await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
+                                return;
+                            }
+
+                            // If amount is missing, treat as "I want to unshield" command
+                            if (!parsed.amount) {
+                                // Default unshield flow starts with token selection if not specified
+                                userStates.set(chatId, { action: 'unshield', step: 'select_token' });
+                                await ctx.reply(
+                                    `${t(lang, 'unshield_title')}\n\n${t(lang, 'unshield_select_token')}`,
+                                    { parse_mode: 'Markdown', ...getUnshieldTokenKeyboard(lang) }
+                                );
+                                return;
+                            }
+
+                            // Full command
+                            pendingNLPCommands.set(chatId, parsed);
+                            const confirmMsgUnshield = generateConfirmationMessage(parsed, lang);
+                            await ctx.reply(
+                                confirmMsgUnshield,
+                                {
+                                    parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                                        [Markup.button.callback(t(lang, 'confirm'), 'nlp_confirm')],
+                                        [Markup.button.callback(t(lang, 'cancel'), 'nlp_cancel')]
+                                    ])
+                                }
+                            );
+                            return;
+
                         case 'private_transfer':
                             // Need wallet for these operations
                             if (!walletService.hasWallet(chatId)) {
                                 await ctx.reply(t(lang, 'error_no_wallet'), getMainMenuKeyboard(false, lang));
                                 return;
                             }
-                            
-                            // Store parsed command and ask for confirmation
-                            pendingNLPCommands.set(chatId, parsed);
-                            const confirmMsg = generateConfirmationMessage(parsed, lang);
-                            
-                            await ctx.reply(
-                                confirmMsg,
-                                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                                    [Markup.button.callback(t(lang, 'confirm'), 'nlp_confirm')],
-                                    [Markup.button.callback(t(lang, 'cancel'), 'nlp_cancel')]
-                                ]) }
-                            );
+
+                            // Handle partial commands
+                            // 1. Has valid amount but missing/invalid address
+                            if (parsed.amount && parsed.amount > 0 && !parsed.address) {
+                                userStates.set(chatId, {
+                                    action: 'private_transfer',
+                                    step: 'enter_address',
+                                    amount: parsed.amount,
+                                    token: parsed.token || 'SOL'
+                                });
+                                await ctx.reply(
+                                    `🔐 *Private Transfer ${parsed.amount} ${parsed.token || 'SOL'}*\n\n` +
+                                    `${t(lang, 'private_transfer_enter_address')}`,
+                                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+                                );
+                                return;
+                            }
+
+                            // 2. Has valid address but missing amount
+                            if (parsed.address && !parsed.amount) {
+                                userStates.set(chatId, {
+                                    action: 'private_transfer',
+                                    step: 'enter_amount',
+                                    recipientAddress: parsed.address,
+                                    token: parsed.token || 'SOL'
+                                });
+                                // Ask for amount
+                                await ctx.reply(
+                                    `🔐 *Private Transfer to* \`${shortenAddress(parsed.address)}\`\n\n` +
+                                    `${t(lang, 'private_transfer_enter_amount', { token: parsed.token || 'SOL' })}`,
+                                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]]) }
+                                );
+                                return;
+                            }
+
+                            // Full command
+                            if (parsed.amount && parsed.address) {
+                                // Store parsed command and ask for confirmation
+                                pendingNLPCommands.set(chatId, parsed);
+                                const confirmMsg = generateConfirmationMessage(parsed, lang);
+
+                                await ctx.reply(
+                                    confirmMsg,
+                                    {
+                                        parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                                            [Markup.button.callback(t(lang, 'confirm'), 'nlp_confirm')],
+                                            [Markup.button.callback(t(lang, 'cancel'), 'nlp_cancel')]
+                                        ])
+                                    }
+                                );
+                                return;
+                            }
+
+                            // Fallback if somehow regex matched but logic failed (shouldn't happen with current regexes)
                             return;
                         case 'export_key':
                             if (!walletService.hasWallet(chatId)) {
@@ -1889,11 +1992,29 @@ export function registerCommands(
                                 `${t(lang, 'export_key_warning_2')}\n` +
                                 `${t(lang, 'export_key_warning_3')}\n\n` +
                                 `${t(lang, 'export_key_confirm_question')}`,
-                                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                                    [Markup.button.callback(t(lang, 'export_key_confirm_yes'), 'confirm_export_key')],
-                                    [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
-                                ]) }
+                                {
+                                    parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                                        [Markup.button.callback(t(lang, 'export_key_confirm_yes'), 'confirm_export_key')],
+                                        [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
+                                    ])
+                                }
                             );
+                            return;
+                        case 'greetings':
+                            const welcomeMsgs: Record<string, string> = {
+                                vi: 'Xin chào! Tôi có thể giúp gì cho bạn với Privacy Cash?',
+                                en: 'Hello! How can I help you with Privacy Cash?',
+                                zh: '您好！有什么我可以帮您的吗？'
+                            };
+                            await ctx.reply(welcomeMsgs[lang] || welcomeMsgs.en);
+                            return;
+                        case 'thank_you':
+                            const thankMsgs: Record<string, string> = {
+                                vi: 'Không có chi! Rất vui được giúp bạn.',
+                                en: 'You\'re welcome! Happy to help.',
+                                zh: '不客气！很高兴为您服务。'
+                            };
+                            await ctx.reply(thankMsgs[lang] || thankMsgs.en);
                             return;
                     }
                 }
@@ -1934,10 +2055,12 @@ export function registerCommands(
                     statusMsg.message_id,
                     undefined,
                     `${t(lang, 'connect_failed')}\n\n${t(lang, 'error')} ${result.error}`,
-                    { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                        [Markup.button.callback(t(lang, 'connect_retry'), 'action_connect')],
-                        [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
-                    ]) }
+                    {
+                        parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                            [Markup.button.callback(t(lang, 'connect_retry'), 'action_connect')],
+                            [Markup.button.callback(t(lang, 'cancel'), 'action_cancel')]
+                        ])
+                    }
                 );
             }
             return;
@@ -1946,7 +2069,7 @@ export function registerCommands(
         // Handle shield amount input
         if (state.action === 'shield' && state.step === 'enter_amount' && state.token) {
             const amount = parseFloat(text);
-            
+
             if (isNaN(amount) || amount <= 0) {
                 await ctx.reply(
                     t(lang, 'error_invalid_amount'),
@@ -1971,7 +2094,7 @@ export function registerCommands(
         // Handle unshield amount input
         if (state.action === 'unshield' && state.step === 'enter_amount' && state.token) {
             const amount = parseFloat(text);
-            
+
             if (isNaN(amount) || amount <= 0) {
                 await ctx.reply(
                     t(lang, 'error_invalid_amount'),
@@ -1994,7 +2117,7 @@ export function registerCommands(
         // Handle unshield address input
         if (state.action === 'unshield' && state.step === 'enter_address' && state.token && state.amount) {
             const address = text.trim();
-            
+
             // Basic Solana address validation (base58, 32-44 chars)
             if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
                 await ctx.reply(
@@ -2023,7 +2146,7 @@ export function registerCommands(
         // Handle private transfer amount input
         if (state.action === 'private_transfer' && state.step === 'enter_amount' && state.token) {
             const amount = parseFloat(text);
-            
+
             if (isNaN(amount) || amount <= 0) {
                 await ctx.reply(
                     t(lang, 'error_invalid_amount'),
@@ -2033,7 +2156,7 @@ export function registerCommands(
             }
 
             state.amount = amount;
-            
+
             // If address already exists (from QR scan), skip to confirm
             if (state.recipientAddress) {
                 state.step = 'confirm';
@@ -2089,7 +2212,7 @@ export function registerCommands(
         // Handle private transfer address input
         if (state.action === 'private_transfer' && state.step === 'enter_address' && state.token && state.amount) {
             const address = text.trim();
-            
+
             // Basic Solana address validation (base58, 32-44 chars)
             if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(address)) {
                 await ctx.reply(
@@ -2141,7 +2264,7 @@ export function registerCommands(
         // Handle multi private send recipients input
         if (state.action === 'multi_private_send' && state.step === 'enter_recipients' && state.token) {
             const lines = text.trim().split('\n').filter((line: string) => line.trim().length > 0);
-            
+
             if (lines.length === 0) {
                 await ctx.reply(
                     t(lang, 'multi_send_no_recipients'),
@@ -2156,10 +2279,10 @@ export function registerCommands(
             for (let i = 0; i < lines.length; i++) {
                 const line = lines[i].trim();
                 const lineNum = i + 1;
-                
+
                 // Parse "address, amount" format
                 const parts = line.split(',').map((p: string) => p.trim());
-                
+
                 if (parts.length !== 2) {
                     errors.push(t(lang, 'multi_send_invalid_format', { line: lineNum, content: line }));
                     continue;
@@ -2213,12 +2336,12 @@ export function registerCommands(
             confirmMessage += `${t(lang, 'multi_send_confirm_total_amount', { amount: totalAmount.toFixed(6), token: state.token })}\n`;
             confirmMessage += `${t(lang, 'multi_send_confirm_recipients_count', { count: recipients.length })}\n\n`;
             confirmMessage += `${t(lang, 'multi_send_confirm_recipients_list')}\n`;
-            
+
             for (let i = 0; i < recipients.length; i++) {
                 const r = recipients[i];
                 confirmMessage += `${i + 1}. \`${shortenAddress(r.address)}\` - ${r.amount} ${state.token}\n`;
             }
-            
+
             confirmMessage += `\n${t(lang, 'multi_send_confirm_fee_note')}`;
 
             await ctx.reply(
@@ -2260,13 +2383,13 @@ export function registerCommands(
 
             // Get the largest photo (last in array)
             const largestPhoto = photos[photos.length - 1];
-            
+
             // Get file URL from Telegram
             const fileLink = await ctx.telegram.getFileLink(largestPhoto.file_id);
-            
+
             // Download the image
             const imageBuffer = await downloadFile(fileLink.href);
-            
+
             // Scan QR code
             const scanResult = await scanQRFromBuffer(imageBuffer);
 
@@ -2286,10 +2409,10 @@ export function registerCommands(
                 const address = parsed?.address || scanResult.data;
 
                 // Store the detected address for use in callbacks
-                userStates.set(chatId, { 
-                    action: 'private_transfer', 
+                userStates.set(chatId, {
+                    action: 'private_transfer',
                     step: 'select_token',
-                    recipientAddress: address 
+                    recipientAddress: address
                 });
 
                 await ctx.telegram.editMessageText(
@@ -2299,7 +2422,7 @@ export function registerCommands(
                     `${t(lang, 'qr_address_detected')}\n\n` +
                     `${t(lang, 'qr_address_label')}\n\`${address}\`\n\n` +
                     `${t(lang, 'qr_what_to_do')}`,
-                    { 
+                    {
                         parse_mode: 'Markdown',
                         ...Markup.inlineKeyboard([
                             [Markup.button.callback(t(lang, 'qr_private_transfer'), `qr_transfer_${address.substring(0, 20)}`)],
@@ -2342,10 +2465,10 @@ export function registerCommands(
         }
 
         // Update state for private transfer token selection
-        userStates.set(chatId, { 
-            action: 'private_transfer', 
+        userStates.set(chatId, {
+            action: 'private_transfer',
             step: 'select_token',
-            recipientAddress: state.recipientAddress 
+            recipientAddress: state.recipientAddress
         });
 
         await safeEditOrReply(ctx,
@@ -2369,7 +2492,7 @@ async function handleStart(ctx: Context, walletService: WalletService): Promise<
     const wallet = walletService.getWallet(chatId);
 
     let welcomeMessage = `${t(lang, 'welcome_title')}\n\n`;
-    
+
     const featureMessages: Record<Language, string> = {
         vi: `Bot giúp bạn tương tác với Privacy Cash trên Solana blockchain cho các giao dịch riêng tư.\n\n` +
             `${t(lang, 'welcome_features')}\n` +
@@ -2396,7 +2519,7 @@ async function handleStart(ctx: Context, walletService: WalletService): Promise<
             `• ${t(lang, 'welcome_feature_monitor')}\n` +
             `• ${t(lang, 'welcome_feature_tokens')}`
     };
-    
+
     welcomeMessage += featureMessages[lang];
 
     if (hasWallet && wallet) {
@@ -2464,7 +2587,7 @@ async function handleLanguageCommand(ctx: Context, walletService: WalletService)
 async function handleHelp(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id || 0;
     const lang = getLang(chatId);
-    
+
     const helpMessages: Record<Language, string> = {
         vi: `
 📚 *Hướng dẫn sử dụng Privacy Cash Bot*
@@ -2584,7 +2707,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 💡 *提示:* 使用 /menu 或 /start 打开按钮界面，操作更便捷！
 `
     };
-    
+
     await ctx.reply(helpMessages[lang], { parse_mode: 'Markdown' });
 }
 
@@ -2615,7 +2738,7 @@ async function handleConnect(ctx: Context, walletService: WalletService): Promis
                 '⚠️ 发送后请删除消息以确保安全！\n\n' +
                 '💡 或点击下方按钮:'
         };
-        
+
         await ctx.reply(
             usageMessages[lang],
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard([[Markup.button.callback(t(lang, 'menu_connect'), 'action_connect')]]) }
@@ -2732,7 +2855,7 @@ async function handleBalance(ctx: Context, walletService: WalletService): Promis
         }
 
         let message = `${t(lang, 'balance_title')}\n\n`;
-        
+
         // SOL
         message += `*${SUPPORTED_TOKENS.SOL.icon} SOL*\n`;
         message += `  ${t(lang, 'balance_public')} \`${formatSOL(balances.sol.public)}\` SOL\n`;
@@ -2993,7 +3116,7 @@ async function executeDepositSOL(
         } else {
             // Handle specific error cases
             let errorMessage = '';
-            
+
             if (result.errorCode === 'INSUFFICIENT_BALANCE' && result.details) {
                 const { required, available, shortfall, estimatedFee } = result.details;
                 const messages: Record<Language, string> = {
@@ -3080,7 +3203,7 @@ async function executeDepositToken(
         } else {
             // Handle specific error cases
             let errorMessage = '';
-            
+
             if (result.errorCode === 'INSUFFICIENT_BALANCE' && result.details) {
                 const { required, available, shortfall } = result.details;
                 const messages: Record<Language, string> = {
@@ -3325,7 +3448,7 @@ async function executeWithdrawSOL(
 
     const wallet = walletService.getWallet(chatId);
     const recipient = recipientAddress || wallet?.publicKey || '';
-    
+
     // Calculate estimated fees
     const feeInfo = calculateWithdrawFee(amount);
 
@@ -3347,7 +3470,7 @@ async function executeWithdrawSOL(
             await balanceMonitor.refreshUserBalance(chatId);
             const actualAmount = (result.actualAmount || 0) / 1e9;
             const fee = (result.fee || 0) / 1e9;
-            
+
             await ctx.telegram.editMessageText(
                 chatId,
                 statusMsg.message_id,
@@ -3365,7 +3488,7 @@ async function executeWithdrawSOL(
             // Check for insufficient private balance
             const errorMessage = result.error || '';
             const insufficientMatch = errorMessage.match(/insufficient|not enough/i);
-            
+
             if (insufficientMatch) {
                 const messages: Record<Language, string> = {
                     vi: `❌ *Không đủ số dư riêng tư!*\n\n` +
@@ -3513,7 +3636,7 @@ async function handleStopMonitor(ctx: Context, walletService: WalletService): Pr
 async function handleTokens(ctx: Context): Promise<void> {
     const chatId = ctx.chat?.id || 0;
     const lang = getLang(chatId);
-    
+
     let message = `${t(lang, 'tokens_title')}\n\n`;
 
     for (const [symbol, info] of Object.entries(SUPPORTED_TOKENS)) {

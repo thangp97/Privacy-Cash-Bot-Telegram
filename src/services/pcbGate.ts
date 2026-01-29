@@ -18,7 +18,7 @@ const CACHE_TTL_ERROR = 10 * 1000; // 10 seconds for errors
 export async function checkPCBEligibility(
     walletService: WalletService,
     chatId: number,
-    minAmount: number = 1_000_000,
+    minAmount: number = 0,
     maxAttempts: number = 3
 ): Promise<{ eligible: boolean; balance: number; error?: string }> {
     const now = Date.now();

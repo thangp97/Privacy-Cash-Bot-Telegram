@@ -33,8 +33,11 @@ export class BalanceMonitor {
         }
 
         const intervalMinutes = config.balanceMonitor.checkIntervalMinutes;
-        const cronExpression = `*/${intervalMinutes} * * * *`;
+        // const cronExpression = `*/${intervalMinutes} * * * *`;
 
+        console.log(`Balance monitor initialized. Background polling disabled to avoid rate limits.`);
+
+        /*
         console.log(`Starting balance monitor with ${intervalMinutes} minute interval`);
 
         this.cronJob = cron.schedule(cronExpression, async () => {
@@ -43,6 +46,7 @@ export class BalanceMonitor {
 
         // Also do an initial check
         this.checkAllBalances().catch(console.error);
+        */
     }
 
     /**
@@ -94,7 +98,7 @@ export class BalanceMonitor {
         if (!currentBalances) return;
 
         const previousBalances = this.previousBalances[chatId];
-        
+
         if (!previousBalances) {
             // First check, just store the balances
             this.previousBalances[chatId] = currentBalances;

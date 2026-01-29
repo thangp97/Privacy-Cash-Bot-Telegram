@@ -30,7 +30,7 @@ export function parseSolanaUri(uri: string): { address: string; amount?: number;
         if (uri.startsWith('solana:')) {
             const withoutScheme = uri.substring(7);
             const [addressPart, queryPart] = withoutScheme.split('?');
-            
+
             if (!isValidSolanaAddress(addressPart)) {
                 return null;
             }
@@ -43,7 +43,7 @@ export function parseSolanaUri(uri: string): { address: string; amount?: number;
                 const params = new URLSearchParams(queryPart);
                 const amount = params.get('amount');
                 const token = params.get('spl-token');
-                
+
                 if (amount) {
                     result.amount = parseFloat(amount);
                 }
@@ -72,34 +72,54 @@ export function parseSolanaUri(uri: string): { address: string; amount?: number;
 export async function scanQRFromBuffer(buffer: Buffer): Promise<QRScanResult> {
     try {
         // Load image using Jimp
-        const image = await Jimp.read(buffer);
-        
-        // Get image data
-        const width = image.bitmap.width;
-        const height = image.bitmap.height;
-        
-        // Convert to RGBA format that jsQR expects
-        const imageData = new Uint8ClampedArray(image.bitmap.data);
-        
-        // Scan QR code
-        const code = jsQR(imageData, width, height);
-        
-        if (!code) {
-            return {
-                success: false,
-                error: 'No QR code found in the image'
-            };
+        const originalImage = await Jimp.read(buffer);
+
+        // Helper to scan a Jimp image
+        const scanImage = (img: any): any => {
+            const width = img.bitmap.width;
+            const height = img.bitmap.height;
+            const imageData = new Uint8ClampedArray(img.bitmap.data);
+            return jsQR(imageData, width, height, { inversionAttempts: "attemptBoth" });
+        };
+
+        // Attempt 1: Original image
+        let code = scanImage(originalImage);
+        if (code) return processResult(code);
+
+        // Attempt 2: Resize if too large (downscale to speed up and reduce noise)
+        // or too small (upscale to help with low res)
+        const { width, height } = originalImage.bitmap;
+        if (width > 2000 || height > 2000) {
+            const resized = originalImage.clone().resize({ w: 1000, h: -1 });
+            code = scanImage(resized);
+            if (code) return processResult(code);
+        } else if (width < 300 || height < 300) {
+            const resized = originalImage.clone().resize({ w: 800, h: -1 });
+            code = scanImage(resized);
+            if (code) return processResult(code);
         }
 
-        const data = code.data;
-        
-        // Check if it's a Solana address or URI
-        const parsed = parseSolanaUri(data);
-        
+        // Attempt 3: Increase contrast and normalize
+        // Often helps with washed out images or bad lighting
+        const sensitiveParams = originalImage.clone().contrast(0.5).normalize();
+        code = scanImage(sensitiveParams);
+        if (code) return processResult(code);
+
+        // Attempt 4: Greyscale and binarization-like effect (high contrast)
+        const highContrast = originalImage.clone().greyscale().contrast(0.8);
+        code = scanImage(highContrast);
+        if (code) return processResult(code);
+
+        // Attempt 5: Resize to a standard "good" size for QR codes (approx 600-800px) + normalize
+        if (width !== 800) {
+            const standard = originalImage.clone().resize({ w: 800, h: -1 }).normalize();
+            code = scanImage(standard);
+            if (code) return processResult(code);
+        }
+
         return {
-            success: true,
-            data: data,
-            isSolanaAddress: parsed !== null
+            success: false,
+            error: 'No QR code found in the image after multiple attempts'
         };
     } catch (error) {
         return {
@@ -107,6 +127,16 @@ export async function scanQRFromBuffer(buffer: Buffer): Promise<QRScanResult> {
             error: error instanceof Error ? error.message : 'Failed to scan QR code'
         };
     }
+}
+
+function processResult(code: any): QRScanResult {
+    const data = code.data;
+    const parsed = parseSolanaUri(data);
+    return {
+        success: true,
+        data: data,
+        isSolanaAddress: parsed !== null
+    };
 }
 
 /**
