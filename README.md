@@ -1,4 +1,4 @@
-# Privacy Cash Telegram Bot
+# Privacy Bot
 
 A Telegram bot for interacting with the Privacy Cash SDK on Solana blockchain - enabling private transactions.
 
@@ -70,7 +70,8 @@ npm run dev
 2. Send command `/connect <private_key>` with your private key
 3. Bot will confirm successful connection
 
-⚠️ **Security Notice**: 
+⚠️ **Security Notice**:
+
 - Delete the message containing your private key immediately after sending
 - Private key is stored locally and encrypted
 - Never share your private key with anyone
@@ -78,6 +79,7 @@ npm run dev
 ### Main Commands
 
 #### Wallet Management
+
 | Command | Description |
 |---------|-------------|
 | `/start` | Start and view guide |
@@ -87,12 +89,14 @@ npm run dev
 | `/wallet` | View wallet information |
 
 #### Balance
+
 | Command | Description |
 |---------|-------------|
 | `/balance` | View all balances (public + private) |
 | `/privatebalance` | View only Privacy Cash balance |
 
 #### Deposit
+
 | Command | Description |
 |---------|-------------|
 | `/deposit <amount>` | Deposit SOL |
@@ -101,6 +105,7 @@ npm run dev
 | `/deposittoken <token> <amount>` | Deposit SPL token |
 
 #### Withdraw
+
 | Command | Description |
 |---------|-------------|
 | `/withdraw <amount>` | Withdraw SOL to your wallet |
@@ -110,12 +115,14 @@ npm run dev
 | `/withdrawtoken <token> <amount> [address]` | Withdraw SPL token |
 
 #### Balance Monitoring
+
 | Command | Description |
 |---------|-------------|
 | `/monitor` | Enable notifications on balance changes |
 | `/stopmonitor` | Disable notifications |
 
 #### Utilities
+
 | Command | Description |
 |---------|-------------|
 | `/tokens` | List of supported tokens |
@@ -178,14 +185,17 @@ privacy-cash-telegram-bot/
 ## 🐛 Common Error Handling
 
 ### "Insufficient balance"
+
 - Check if public balance is sufficient for deposit transactions
 - Check if private balance is sufficient for withdrawal transactions
 
 ### "Invalid private key"
+
 - Ensure private key is in correct format (base58)
 - Private key must be a valid Solana key
 
 ### "Rate limit"
+
 - Wait a moment and try again
 - Consider using a private RPC
 

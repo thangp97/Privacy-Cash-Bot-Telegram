@@ -305,7 +305,7 @@ const vi: LocaleStrings = {
     menu_export_key: '🔑 Xuất Private Key',
 
     // Welcome
-    welcome_title: '🔒 *Chào mừng đến với Privacy Cash Bot!*',
+    welcome_title: '🔒 *Chào mừng đến với Privacy Bot!*',
     welcome_features: '*✨ Tính năng:*',
     welcome_feature_shield: '🛡️ Shield SOL/token vào ví riêng tư',
     welcome_feature_unshield: '📤 Unshield SOL/token về ví công khai',
@@ -460,7 +460,7 @@ const vi: LocaleStrings = {
     monitor_disabled_message: '🔕 Bạn sẽ không nhận thông báo khi số dư thay đổi.',
 
     // Help
-    help_title: '📚 *Hướng dẫn sử dụng Privacy Cash Bot*',
+    help_title: '📚 *Hướng dẫn sử dụng Privacy Bot*',
     help_wallet_management: '*🔗 Quản lý ví*',
     help_balance: '*💰 Số dư*',
     help_shield: '*🛡️ Shield* - Chuyển token vào ví riêng tư',
@@ -566,7 +566,7 @@ const en: LocaleStrings = {
     menu_export_key: '🔑 Export Private Key',
 
     // Welcome
-    welcome_title: '🔒 *Welcome to Privacy Cash Bot!*',
+    welcome_title: '🔒 *Welcome to Privacy Bot!*',
     welcome_features: '*✨ Features:*',
     welcome_feature_shield: '🛡️ Shield SOL/tokens to private wallet',
     welcome_feature_unshield: '📤 Unshield SOL/tokens to public wallet',
@@ -721,7 +721,7 @@ const en: LocaleStrings = {
     monitor_disabled_message: '🔕 You will no longer receive notifications when your balance changes.',
 
     // Help
-    help_title: '📚 *Privacy Cash Bot Guide*',
+    help_title: '📚 *Privacy Bot Guide*',
     help_wallet_management: '*🔗 Wallet Management*',
     help_balance: '*💰 Balance*',
     help_shield: '*🛡️ Shield* - Transfer tokens to private wallet',
@@ -827,7 +827,7 @@ const zh: LocaleStrings = {
     menu_export_key: '🔑 导出私钥',
 
     // Welcome
-    welcome_title: '🔒 *欢迎使用 Privacy Cash Bot！*',
+    welcome_title: '🔒 *欢迎使用 Privacy Bot！*',
     welcome_features: '*✨ 功能:*',
     welcome_feature_shield: '🛡️ Shield SOL/代币到私密钱包',
     welcome_feature_unshield: '📤 Unshield SOL/代币到公开钱包',
@@ -982,7 +982,7 @@ const zh: LocaleStrings = {
     monitor_disabled_message: '🔕 当您的余额发生变化时，您将不再收到通知。',
 
     // Help
-    help_title: '📚 *Privacy Cash Bot 使用指南*',
+    help_title: '📚 *Privacy Bot 使用指南*',
     help_wallet_management: '*🔗 钱包管理*',
     help_balance: '*💰 余额*',
     help_shield: '*🛡️ Shield* - 将代币转入私密钱包',
@@ -1054,13 +1054,13 @@ export const defaultLanguage: Language = 'en';
 
 export function t(lang: Language, key: keyof LocaleStrings, params?: Record<string, string | number>): string {
     let text = locales[lang][key] || locales[defaultLanguage][key] || key;
-    
+
     if (params) {
         for (const [paramKey, paramValue] of Object.entries(params)) {
             text = text.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(paramValue));
         }
     }
-    
+
     return text;
 }
 

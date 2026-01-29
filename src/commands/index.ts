@@ -2590,7 +2590,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 
     const helpMessages: Record<Language, string> = {
         vi: `
-📚 *Hướng dẫn sử dụng Privacy Cash Bot*
+📚 *Hướng dẫn sử dụng Privacy Bot*
 
 *🔗 Quản lý ví*
 /connect <private\\_key> - Kết nối ví
@@ -2629,7 +2629,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 💡 *Mẹo:* Sử dụng /menu hoặc /start để mở giao diện nút bấm dễ sử dụng hơn!
 `,
         en: `
-📚 *Privacy Cash Bot Guide*
+📚 *Privacy Bot Guide*
 
 *🔗 Wallet Management*
 /connect <private\\_key> - Connect wallet
@@ -2668,7 +2668,7 @@ async function handleHelp(ctx: Context): Promise<void> {
 💡 *Tip:* Use /menu or /start to open the button interface for easier navigation!
 `,
         zh: `
-📚 *Privacy Cash Bot 使用指南*
+📚 *Privacy Bot 使用指南*
 
 *🔗 钱包管理*
 /connect <私钥> - 连接钱包
